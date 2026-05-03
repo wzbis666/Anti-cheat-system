@@ -1,0 +1,175 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0" version="21.0.0">
+  <diagram id="er-diagram" name="系统总体E-R图">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <mxCell id="title" value="图4-5 系统总体E-R图" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="200" height="30" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="admin_entity" value="管理员" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="80" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="player_entity" value="玩家" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="400" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="user_entity" value="用户" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="cheat_entity" value="作弊记录" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="400" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="punish_entity" value="封禁记录" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="500" y="550" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="report_entity" value="举报记录" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="400" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="whitelist_entity" value="白名单" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="550" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="settings_entity" value="系统设置" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontStyle=1;fontSize=14;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="80" width="100" height="50" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="admin_attrs" value="管理员ID&#xa;用户名&#xa;密码&#xa;角色&#xa;创建时间&#xa;最后登录" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="50" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="player_attrs" value="玩家ID&#xa;玩家名称&#xa;UUID&#xa;风险评分&#xa;最后在线&#xa;被踢次数" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="370" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="user_attrs" value="用户ID&#xa;用户名&#xa;密码&#xa;邮箱&#xa;角色&#xa;创建时间" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="cheat_attrs" value="记录ID&#xa;玩家ID&#xa;作弊类型&#xa;检测时间&#xa;严重程度&#xa;详细信息" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="370" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="punish_attrs" value="封禁ID&#xa;玩家ID&#xa;封禁类型&#xa;封禁时间&#xa;封禁时长&#xa;封禁原因" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="620" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="report_attrs" value="举报ID&#xa;举报人&#xa;被举报人&#xa;举报原因&#xa;处理状态&#xa;处理结果" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="480" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="whitelist_attrs" value="记录ID&#xa;玩家名称&#xa;UUID&#xa;添加原因&#xa;添加人&#xa;添加时间" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="620" width="100" height="100" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="settings_attrs" value="设置ID&#xa;设置键&#xa;设置值&#xa;描述&#xa;更新时间" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;fontSize=10;fontColor=#000000;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="800" y="150" width="100" height="90" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r1" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="admin_entity" target="admin_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r2" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="player_entity" target="player_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r3" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="user_entity" target="user_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r4" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="cheat_entity" target="cheat_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r5" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="punish_entity" target="punish_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r6" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="report_entity" target="report_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r7" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="whitelist_entity" target="whitelist_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r8" value="" style="endArrow=none;html=1;strokeColor=#000000;" edge="1" parent="1" source="settings_entity" target="settings_attrs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r9" value="管理" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="admin_entity" target="player_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r10" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="510" y="250" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r11" value="产生" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="player_entity" target="cheat_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r12" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="350" y="410" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r13" value="接受" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="player_entity" target="punish_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r14" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="510" y="480" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r15" value="发起" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="player_entity" target="report_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r16" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="650" y="410" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r17" value="加入" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="player_entity" target="whitelist_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r18" value="1:1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="350" y="490" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r19" value="执行" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="admin_entity" target="punish_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r20" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="540" y="300" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r21" value="处理" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="admin_entity" target="report_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r22" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="680" y="200" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r23" value="配置" style="endArrow=none;html=1;strokeColor=#000000;fontSize=10;fontColor=#000000;" edge="1" parent="1" source="admin_entity" target="settings_entity">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="r24" value="1:n" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="680" y="80" width="30" height="20" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

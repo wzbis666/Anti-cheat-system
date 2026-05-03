@@ -1,0 +1,11 @@
+name: AntiCheatPlugin
+main: com.anticheat.AntiCheatPlugin
+version: 1.0
+api-version: 1.20
+author: AntiCheatTeam
+description: A simple anti-cheat plugin for Spigot servers
+
+permissions:
+  anticheat.fly:
+    description: Allows players to fly
+    default: op

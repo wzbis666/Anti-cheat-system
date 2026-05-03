@@ -1,0 +1,37 @@
+name: AntiCheatPlugin
+main: com.anticheat.AntiCheatPlugin
+version: 2.0
+api-version: 1.20
+author: AntiCheatTeam
+description: A comprehensive anti-cheat plugin for Spigot servers
+
+commands:
+  anticheat:
+    description: AntiCheat main command
+    usage: /anticheat [reload|status|clear <player>]
+    permission: anticheat.admin
+  ac:
+    description: AntiCheat short command
+    usage: /ac [reload|status|clear <player>]
+    permission: anticheat.admin
+  report:
+    description: Report a player for cheating or other violations
+    usage: /report <player> <reason>
+    permission: anticheat.report
+
+permissions:
+  anticheat.bypass:
+    description: Bypass all anti-cheat checks
+    default: op
+  anticheat.fly:
+    description: Allows players to fly without triggering checks
+    default: op
+  anticheat.admin:
+    description: Access to anticheat admin commands
+    default: op
+  anticheat.notify:
+    description: Receive cheat detection notifications
+    default: op
+  anticheat.report:
+    description: Ability to report players
+    default: true

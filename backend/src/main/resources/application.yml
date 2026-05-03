@@ -1,0 +1,50 @@
+api:
+  key: ${API_KEY:}
+
+ai:
+  enabled: ${AI_ENABLED:true}
+  provider: ${AI_PROVIDER:deepseek}
+  api-key: ${AI_API_KEY:}
+  base-url: ${AI_BASE_URL:https://api.deepseek.com}
+  model: ${AI_MODEL:deepseek-chat}
+  max-tokens: ${AI_MAX_TOKENS:2048}
+  temperature: ${AI_TEMPERATURE:0.3}
+  timeout: ${AI_TIMEOUT:30}
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: anticheat-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/anticheat?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: ${SHOW_SQL:false}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+logging:
+  level:
+    com.anticheat: ${LOG_LEVEL:INFO}
+    org.springframework.web: INFO
+    org.hibernate: INFO

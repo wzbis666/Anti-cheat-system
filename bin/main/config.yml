@@ -1,0 +1,31 @@
+# AntiCheatPlugin 配置文件
+
+# WebSocket 服务器配置
+websocket:
+  host: localhost
+  port: 8080
+
+# 检测开关
+detection:
+  fly: true          # 飞行作弊检测
+  speed: true        # 速度作弊检测
+  autoclick: true    # 自动点击检测
+  fly_permission: true  # 飞行权限检测
+
+# 检测阈值
+thresholds:
+  # 速度检测阈值 (m/s)
+  max-walk-speed: 5.0
+  max-sprint-speed: 7.0
+  max-fly-speed: 12.0
+
+  # 自动点击检测阈值 (次/秒)
+  max-clicks-per-second: 20
+
+  # 违规次数阈值
+  violation-threshold: 3
+
+# 消息配置
+messages:
+  warning: "&c[AntiCheat] &f警告: 检测到疑似 %cheatType% 行为，请规范游戏"
+  kick: "&c[AntiCheat] &f检测到异常行为，你已被踢出服务器"

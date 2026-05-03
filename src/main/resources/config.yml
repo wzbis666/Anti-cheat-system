@@ -1,0 +1,70 @@
+# AntiCheatPlugin 配置文件
+
+# API 认证密钥（需与后端 application.yml 中的 api.key 一致）
+api:
+  key: anticheat-plugin-secret-api-key-change-in-production
+
+# WebSocket 服务器配置
+websocket:
+  host: localhost
+  port: 8080
+
+# 调试模式（生产环境请设置为 false）
+debug: false
+
+# 检测开关
+detection:
+  fly: true              # 飞行作弊检测
+  speed: true            # 速度作弊检测
+  autoclick: true        # 自动点击检测
+  fly_permission: true   # 飞行权限检测
+  aimbot: true           # 瞄准辅助检测
+  killaura: true         # 杀戮光环检测
+  xray: true             # 透视作弊检测
+
+# 检测阈值
+thresholds:
+  # 速度检测阈值 (m/s)
+  max-walk-speed: 5.0
+  max-sprint-speed: 7.0
+  max-fly-speed: 12.0
+
+  # 自动点击检测阈值 (次/秒) — 与代码默认值一致
+  max-clicks-per-second: 15
+
+  # 瞄准辅助检测阈值
+  max-yaw-change: 160.0       # 最大水平视角变化（单位：度，必须 < 180）
+  max-pitch-change: 90.0      # 最大垂直视角变化
+  aim-violation-threshold: 3  # 瞄准违规触发阈值（连续异常次数）
+
+  # 杀戮光环检测阈值
+  killaura-targets: 3         # 短时间内攻击的不同目标数
+  killaura-window: 1000       # 检测时间窗口 (毫秒)
+
+  # X-Ray透视检测阈值
+  xray-rare-ore-ratio: 0.15   # 稀有矿物比例阈值
+  xray-min-blocks: 50         # 最小挖掘方块数
+
+  # 飞行检测阈值
+  max-air-ticks: 10           # 最大悬空时间 (tick)
+  max-hover-count: 5          # 最大悬停次数（连续静止在空中 tick 数）
+
+# 惩罚配置
+punishment:
+  cooldown: 3000              # 作弊检测冷却时间 (毫秒)
+  # 渐进式惩罚: 警告 → 临时封禁 → 永久封禁
+  warning-threshold: 2        # 纯警告次数（仅发消息提醒）
+  temp-ban-threshold: 4       # 临时封禁触发次数
+  perm-ban-threshold: 6       # 永久封禁触发次数
+  temp-ban-duration: 86400000 # 临时封禁时长 (毫秒)，默认24小时
+
+# 消息配置
+messages:
+  warning: "&c&l[AntiCheat] &e警告! &f检测到疑似 &c%cheatType% &f行为"
+  warning-count: "&c&l[AntiCheat] &f这是第 &e%count% &f次警告，再次作弊将被踢出服务器"
+  kick: "&c[AntiCheat] &f检测到多次作弊行为，你已被踢出服务器"
+
+# 权限说明
+# anticheat.bypass - 跳过所有检测
+# anticheat.fly - 允许飞行
+# anticheat.admin - 管理员权限
