@@ -22,7 +22,13 @@ public class Player {
     
     @Column(name = "last_seen")
     private long lastSeen;
-    
+
+    @Column(name = "first_seen")
+    private long firstSeen;
+
+    @Column(name = "last_ip")
+    private String lastIp;
+
     @Column(name = "kick_count", nullable = false)
     private int kickCount = 0;
     
@@ -75,12 +81,22 @@ public class Player {
         this.lastSeen = lastSeen;
     }
 
+    public long getFirstSeen() { return firstSeen; }
+    public void setFirstSeen(long firstSeen) { this.firstSeen = firstSeen; }
+
+    public String getLastIp() { return lastIp; }
+    public void setLastIp(String lastIp) { this.lastIp = lastIp; }
+
     public int getKickCount() {
         return kickCount;
     }
 
     public void setKickCount(int kickCount) {
         this.kickCount = kickCount;
+    }
+
+    public void incrementKickCount() {
+        this.kickCount++;
     }
 
     public List<CheatRecord> getCheatRecords() {

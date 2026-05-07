@@ -1,5 +1,8 @@
 package com.anticheat.backend.controller;
 
+import com.anticheat.backend.dto.ApiResponse;
+import com.anticheat.backend.security.JwtUtils;
+import com.anticheat.backend.service.AuditLogService;
 import com.anticheat.backend.service.SystemSettingsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +15,12 @@ import java.util.Map;
 public class SettingsController {
 
     private final SystemSettingsService settingsService;
+
+    @Autowired
+    private AuditLogService auditLogService;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Autowired
     public SettingsController(SystemSettingsService settingsService) {
@@ -33,13 +42,17 @@ public class SettingsController {
     }
 
     @PutMapping
-    public ResponseEntity<Map<String, String>> updateSettings(@RequestBody Map<String, Object> settings) {
+    public ResponseEntity<ApiResponse<Void>> updateSettings(@RequestBody Map<String, Object> settings) {
         settingsService.updateSettings(settings);
-        return ResponseEntity.ok(Map.of("message", "设置已更新"));
+
+        auditLogService.log(getCurrentUserId(), getCurrentUsername(), "SETTINGS_UPDATE", "SETTINGS",
+                null, null, "批量更新 " + settings.size() + " 项设置");
+
+        return ResponseEntity.ok(ApiResponse.ok(null, "设置已更新"));
     }
 
     @PutMapping("/{key}")
-    public ResponseEntity<Map<String, String>> updateSetting(
+    public ResponseEntity<ApiResponse<Map<String, String>>> updateSetting(
             @PathVariable String key,
             @RequestBody Map<String, Object> body) {
 
@@ -47,16 +60,52 @@ public class SettingsController {
         String description = (String) body.getOrDefault("description", null);
 
         if (value == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "缺少 value 字段"));
+            return ResponseEntity.badRequest().body(ApiResponse.fail("缺少 value 字段"));
         }
 
         settingsService.setSetting(key, String.valueOf(value), description);
-        return ResponseEntity.ok(Map.of("message", "设置已更新", "key", key, "value", String.valueOf(value)));
+
+        auditLogService.log(getCurrentUserId(), getCurrentUsername(), "SETTINGS_UPDATE", "SETTINGS",
+                null, key, "更新设置为: " + value);
+
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("key", key, "value", String.valueOf(value)), "设置已更新"));
     }
 
     @PostMapping("/init")
-    public ResponseEntity<Map<String, String>> initDefaultSettings() {
+    public ResponseEntity<ApiResponse<Void>> initDefaultSettings() {
         settingsService.initDefaultSettings();
-        return ResponseEntity.ok(Map.of("message", "默认设置已初始化"));
+        return ResponseEntity.ok(ApiResponse.ok(null, "默认设置已初始化"));
+    }
+
+    private String getCurrentUsername() {
+        try {
+            String token = getToken();
+            return token != null ? jwtUtils.getUsernameFromToken(token) : "SYSTEM";
+        } catch (Exception e) {
+            return "SYSTEM";
+        }
+    }
+
+    private Long getCurrentUserId() {
+        try {
+            String token = getToken();
+            return token != null ? jwtUtils.getUserIdFromToken(token) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getToken() {
+        try {
+            jakarta.servlet.http.HttpServletRequest request =
+                    ((org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.getRequestAttributes())
+                            .getRequest();
+            String bearer = request.getHeader("Authorization");
+            if (bearer != null && bearer.startsWith("Bearer ")) {
+                return bearer.substring(7);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

@@ -42,4 +42,9 @@ public interface CheatRecordRepository extends JpaRepository<CheatRecord, Long> 
     default List<CheatRecord> findTop50ByOrderByDetectionTimeDesc() {
         return findAllByOrderByDetectionTimeDesc().stream().limit(50).toList();
     }
+
+    @Query(value = "SELECT DATE_FORMAT(FROM_UNIXTIME(detection_time/1000), '%Y-%m-%d %H:00') as hour, COUNT(*) as cnt " +
+           "FROM cheat_records WHERE detection_time >= :startTime " +
+           "GROUP BY hour ORDER BY hour", nativeQuery = true)
+    List<Object[]> countByHour(@Param("startTime") long startTime);
 }

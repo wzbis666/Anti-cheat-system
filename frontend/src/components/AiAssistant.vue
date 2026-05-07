@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿<template>
   <div class="ai-assistant">
     <button v-if="!isOpen" class="ai-fab" @click="toggleOpen" :title="t('ai.assistant')">
       <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1.27a7 7 0 01-12.46 0H5a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73A2 2 0 0112 2zm-1 9a2 2 0 100 4 2 2 0 000-4zm4 0a2 2 0 100 4 2 2 0 000-4zm-4 6.5a5.5 5.5 0 005.16-3.59L15.73 13H8.27l-.43 1.91A5.5 5.5 0 0011 17.5z"/></svg>
@@ -71,9 +71,10 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { aiApi } from '../api'
+import { EventBus, Events } from '../utils/eventBus'
 import { renderAiText } from '../utils/helpers'
 
 export default {
@@ -103,6 +104,21 @@ export default {
     }
 
     let statusInterval = null
+
+    const startStatusPolling = () => {
+      if (statusInterval) return
+      checkAiStatus()
+      statusInterval = setInterval(checkAiStatus, 60000)
+    }
+
+    const stopStatusPolling = () => {
+      if (statusInterval) { clearInterval(statusInterval); statusInterval = null }
+    }
+
+    watch(isOpen, (v) => {
+      if (v) startStatusPolling()
+      else stopStatusPolling()
+    })
 
     const scrollToBottom = async () => {
       await nextTick()
@@ -185,12 +201,14 @@ export default {
     }
 
     onMounted(() => {
+      const unsubscribe = EventBus.on(Events.WS_STATUS, (connected) => {
+        if (!connected) aiAvailable.value = false
+      })
       checkAiStatus()
-      statusInterval = setInterval(checkAiStatus, 30000)
     })
 
     onUnmounted(() => {
-      if (statusInterval) clearInterval(statusInterval)
+      stopStatusPolling()
     })
 
     return { isOpen, aiAvailable, messages, inputMessage, loading, messagesContainer, toggleOpen, sendMessage, sendQuickMessage, clearChat, renderAiText, t }

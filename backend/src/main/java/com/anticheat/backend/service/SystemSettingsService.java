@@ -112,6 +112,23 @@ public class SystemSettingsService {
             setIntSetting("threshold.speed", 10, "速度作弊阈值（m/s）");
             setSetting("punishment.strategy", "kick", "惩罚策略: warning/kick/ban");
             setIntSetting("threshold.violation", 3, "违规次数阈值");
+            setBooleanSetting("progressive_punishment_enabled", true, "启用渐进式自动惩罚");
+            setIntSetting("cheat.fly.warn_threshold", 2, "飞行作弊警告阈值");
+            setIntSetting("cheat.fly.kick_threshold", 4, "飞行作弊踢出阈值");
+            setIntSetting("cheat.fly.temp_ban_threshold", 6, "飞行作弊临时封禁阈值");
+            setIntSetting("cheat.fly.perm_ban_threshold", 10, "飞行作弊永久封禁阈值");
+            setIntSetting("cheat.speed.warn_threshold", 3, "速度作弊警告阈值");
+            setIntSetting("cheat.speed.kick_threshold", 5, "速度作弊踢出阈值");
+            setIntSetting("cheat.speed.temp_ban_threshold", 8, "速度作弊临时封禁阈值");
+            setIntSetting("cheat.speed.perm_ban_threshold", 12, "速度作弊永久封禁阈值");
+            setIntSetting("cheat.autoclick.warn_threshold", 3, "自动点击警告阈值");
+            setIntSetting("cheat.autoclick.kick_threshold", 5, "自动点击踢出阈值");
+            setIntSetting("cheat.autoclick.temp_ban_threshold", 8, "自动点击临时封禁阈值");
+            setIntSetting("cheat.autoclick.perm_ban_threshold", 12, "自动点击永久封禁阈值");
+            setIntSetting("cheat.killaura.warn_threshold", 1, "杀戮光环警告阈值");
+            setIntSetting("cheat.killaura.kick_threshold", 2, "杀戮光环踢出阈值");
+            setIntSetting("cheat.killaura.temp_ban_threshold", 4, "杀戮光环临时封禁阈值");
+            setIntSetting("cheat.killaura.perm_ban_threshold", 6, "杀戮光环永久封禁阈值");
             logger.info("初始化默认系统设置完成");
         }
     }

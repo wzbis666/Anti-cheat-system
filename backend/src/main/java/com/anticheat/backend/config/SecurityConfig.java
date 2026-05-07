@@ -1,7 +1,10 @@
 package com.anticheat.backend.config;
 
+import com.anticheat.backend.security.ApiKeyAuthFilter;
 import com.anticheat.backend.security.JwtAuthenticationFilter;
+import com.anticheat.backend.security.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,11 +29,17 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}")
+    private String allowedOrigins;
+
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
-    private com.anticheat.backend.security.ApiKeyAuthFilter apiKeyAuthFilter;
+    private ApiKeyAuthFilter apiKeyAuthFilter;
+
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,6 +51,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/api/audit/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/appeal/all", "/api/appeal/pending", "/api/appeal/count/**", "/api/appeal/player/**").authenticated()
+                .requestMatchers("/api/appeal/handle/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/appeal/create").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/appeal/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/ai/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/punishment/all", "/api/punishment/active", "/api/punishment/uuid/**", "/api/punishment/check/**").authenticated()
                 .requestMatchers("/api/punishment/ban").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -54,6 +68,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/player/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/cheat/all", "/api/cheat/page", "/api/cheat/player/**", "/api/cheat/type/**").authenticated()
                 .requestMatchers("/api/cheat/add").hasAnyRole("ADMIN", "SUPER_ADMIN", "PLUGIN")
+                .requestMatchers(HttpMethod.GET, "/api/cheat/export/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/cheat/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/report/all", "/api/report/pending", "/api/report/count/**").authenticated()
                 .requestMatchers("/api/report/handle/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -64,10 +79,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/whitelist/remove/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/whitelist/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/settings/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/notification-rules/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/stats/**").authenticated()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -77,10 +94,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000", "http://localhost:3001",
-            "http://127.0.0.1:3000", "http://127.0.0.1:3001"
-        ));
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "X-Api-Key"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));

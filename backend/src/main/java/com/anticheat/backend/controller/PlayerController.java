@@ -1,6 +1,9 @@
 package com.anticheat.backend.controller;
 
+import com.anticheat.backend.dto.ApiResponse;
 import com.anticheat.backend.model.Player;
+import com.anticheat.backend.security.JwtUtils;
+import com.anticheat.backend.service.AuditLogService;
 import com.anticheat.backend.service.PlayerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,15 +13,20 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/player")
 public class PlayerController {
 
     private static final Logger logger = LoggerFactory.getLogger(PlayerController.class);
-    
+
     private final PlayerService playerService;
+
+    @Autowired
+    private AuditLogService auditLogService;
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     @Autowired
     public PlayerController(PlayerService playerService) {
@@ -32,16 +40,16 @@ public class PlayerController {
 
     @GetMapping("/{uuid}")
     public ResponseEntity<Player> getPlayerByUuid(@PathVariable String uuid) {
-        Optional<Player> player = playerService.findByUuid(uuid);
-        return player.map(ResponseEntity::ok)
-                     .orElse(ResponseEntity.notFound().build());
+        return playerService.findByUuid(uuid)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/name/{playerName}")
     public ResponseEntity<Player> getPlayerByName(@PathVariable String playerName) {
-        Optional<Player> player = playerService.findByPlayerName(playerName);
-        return player.map(ResponseEntity::ok)
-                     .orElse(ResponseEntity.notFound().build());
+        return playerService.findByPlayerName(playerName)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/high-risk")
@@ -62,9 +70,11 @@ public class PlayerController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deletePlayer(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Void>> deletePlayer(@PathVariable Long id) {
         playerService.deletePlayer(id);
-        return ResponseEntity.ok(Map.of("message", "玩家已删除"));
+        auditLogService.log(getCurrentUserId(), getCurrentUsername(), "DELETE_PLAYER", "PLAYER",
+                id, null, "删除玩家及关联数据");
+        return ResponseEntity.ok(ApiResponse.ok(null, "玩家已删除"));
     }
 
     @PostMapping("/kick/{uuid}")
@@ -72,42 +82,95 @@ public class PlayerController {
             @PathVariable String uuid,
             @RequestBody(required = false) Map<String, String> request) {
         String playerName = request != null ? request.getOrDefault("playerName", "Unknown") : "Unknown";
-        
         int kickCount = playerService.incrementKickCount(playerName, uuid);
         logger.info("玩家 {} 踢出次数更新: {}", playerName, kickCount);
-        
-        return ResponseEntity.ok(Map.of(
-            "uuid", uuid,
-            "kickCount", kickCount
-        ));
+
+        return ResponseEntity.ok(Map.of("uuid", uuid, "kickCount", kickCount));
     }
 
     @GetMapping("/kick/{uuid}")
     public ResponseEntity<Map<String, Object>> getKickCount(@PathVariable String uuid) {
         int kickCount = playerService.getKickCount(uuid);
-        return ResponseEntity.ok(Map.of(
-            "uuid", uuid,
-            "kickCount", kickCount
-        ));
+        return ResponseEntity.ok(Map.of("uuid", uuid, "kickCount", kickCount));
     }
 
     @PostMapping("/kick/reset/{uuid}")
     public ResponseEntity<Map<String, Object>> resetKickCount(@PathVariable String uuid) {
         playerService.resetKickCount(uuid);
-        return ResponseEntity.ok(Map.of(
-            "uuid", uuid,
-            "kickCount", 0
-        ));
+        return ResponseEntity.ok(Map.of("uuid", uuid, "kickCount", 0));
     }
 
     @PutMapping("/{id}/risk")
-    public ResponseEntity<Map<String, Object>> updateRiskScore(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<Void>> updateRiskScore(@PathVariable Long id,
+                                                              @RequestBody Map<String, Object> request) {
         try {
             int score = ((Number) request.get("score")).intValue();
             playerService.updateRiskScore(id, score);
-            return ResponseEntity.ok(Map.of("success", true, "message", "风险评分已更新"));
+            auditLogService.log(getCurrentUserId(), getCurrentUsername(), "UPDATE_RISK", "PLAYER",
+                    id, null, "风险评分更新为: " + score);
+            return ResponseEntity.ok(ApiResponse.ok(null, "风险评分已更新"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
         }
+    }
+
+    @GetMapping("/{id}/sessions")
+    public ResponseEntity<ApiResponse<List<com.anticheat.backend.model.PlayerSession>>> getPlayerSessions(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(playerService.getPlayerSessions(id)));
+    }
+
+    @GetMapping("/{id}/ips")
+    public ResponseEntity<ApiResponse<List<String>>> getPlayerIps(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.ok(playerService.getPlayerDistinctIps(id)));
+    }
+
+    @PostMapping("/session/login")
+    public ResponseEntity<ApiResponse<com.anticheat.backend.model.PlayerSession>> recordLogin(
+            @RequestBody Map<String, String> request) {
+        String playerName = request.get("playerName");
+        String uuid = request.get("uuid");
+        String ipAddress = request.get("ipAddress");
+        String serverName = request.get("serverName");
+        return ResponseEntity.ok(ApiResponse.ok(
+                playerService.recordLogin(playerName, uuid, ipAddress, serverName)));
+    }
+
+    @PostMapping("/session/logout/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> recordLogout(@PathVariable Long sessionId) {
+        playerService.recordLogout(sessionId);
+        return ResponseEntity.ok(ApiResponse.ok(null, "登出已记录"));
+    }
+
+    private String getCurrentUsername() {
+        try {
+            String token = getToken();
+            return token != null ? jwtUtils.getUsernameFromToken(token) : "SYSTEM";
+        } catch (Exception e) {
+            return "SYSTEM";
+        }
+    }
+
+    private Long getCurrentUserId() {
+        try {
+            String token = getToken();
+            return token != null ? jwtUtils.getUserIdFromToken(token) : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String getToken() {
+        try {
+            jakarta.servlet.http.HttpServletRequest request =
+                    ((org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.getRequestAttributes())
+                            .getRequest();
+            String bearer = request.getHeader("Authorization");
+            if (bearer != null && bearer.startsWith("Bearer ")) {
+                return bearer.substring(7);
+            }
+        } catch (Exception ignored) {}
+        return null;
     }
 }

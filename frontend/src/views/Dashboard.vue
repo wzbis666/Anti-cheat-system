@@ -221,8 +221,9 @@ export default {
 
     const getBarWidth = (key) => {
       const v = stats.value[key] || 0
-      const maxMap = { totalPlayers: 100, totalCheats: 100, highRiskPlayers: 50, activeBans: 50, pendingReports: 30 }
-      return Math.min((v / (maxMap[key] || 100)) * 100, 100)
+      const keys = Object.keys(stats.value).filter(k => k !== 'mediumRiskPlayers' && k !== 'lowRiskPlayers')
+      const maxVal = Math.max(...keys.map(k => stats.value[k] || 0), 1)
+      return Math.min((v / maxVal) * 100, 100)
     }
 
     const animateValue = (key, target) => {
@@ -265,8 +266,14 @@ export default {
     }
 
     const getAlertTagClass = (alert) => {
-      const map = { '飞行作弊': 'tag-fly', '速度作弊': 'tag-speed', '自动点击作弊': 'tag-auto', '杀戮光环': 'tag-kill', '瞄准辅助': 'tag-aim' }
-      return map[alert.cheatType] || 'tag-default'
+      if (!alert.cheatType) return 'tag-default'
+      const type = alert.cheatType.toLowerCase()
+      if (type.includes('fly') || type.includes('飞行')) return 'tag-fly'
+      if (type.includes('speed') || type.includes('速度')) return 'tag-speed'
+      if (type.includes('auto') || type.includes('click') || type.includes('点击')) return 'tag-auto'
+      if (type.includes('kill') || type.includes('aura') || type.includes('杀戮')) return 'tag-kill'
+      if (type.includes('aim') || type.includes('瞄准')) return 'tag-aim'
+      return 'tag-default'
     }
 
     const getSeverityClass = (s) => {
@@ -502,9 +509,7 @@ export default {
       startTime = Date.now(); uptimeInterval = setInterval(updateUptime, 1000)
       unsubscribeStatsChanged = EventBus.on(Events.STATS_CHANGED, () => { fetchOverviewStats(); nextTick(() => fetchCheatTypeStats()) })
       unsubscribeCheatDetected = EventBus.on(Events.CHEAT_DETECTED, handleCheatDetected)
-      unsubscribeWsStatus = EventBus.on('ws:status', (c) => { wsConnected.value = c })
-      if (window.__wsConnected !== undefined) wsConnected.value = window.__wsConnected
-      if (window.__lastCheatData && Date.now() - window.__lastCheatTime < 5000) handleCheatDetected(window.__lastCheatData)
+      unsubscribeWsStatus = EventBus.on(Events.WS_STATUS, (c) => { wsConnected.value = c })
       initDataRain(); initParticles(); setupHolographicTilt()
     })
 

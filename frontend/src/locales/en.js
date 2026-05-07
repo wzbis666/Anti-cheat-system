@@ -3,7 +3,7 @@ export default {
     loading: 'Loading...', noData: 'No data', confirm: 'Confirm', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', save: 'Save', search: 'Search', actions: 'Actions', status: 'Status', time: 'Time', details: 'Details', view: 'View', close: 'Close', add: 'Add', enable: 'Enable', disable: 'Disable', all: 'All', success: 'Success', error: 'Error', warning: 'Warning', info: 'Info', logout: 'Logout'
   },
   nav: {
-    dashboard: 'Dashboard', players: 'Players', cheats: 'Cheat Logs', reports: 'Reports', punishments: 'Punishments', whitelist: 'Whitelist', settings: 'Settings', main: 'Main', management: 'Management'
+    dashboard: 'Dashboard', players: 'Players', cheats: 'Cheat Logs', reports: 'Reports', punishments: 'Punishments', whitelist: 'Whitelist', settings: 'Settings', appeals: 'Appeals', audit: 'Audit Log', main: 'Main', management: 'Management'
   },
   auth: {
     login: 'Sign In', logout: 'Logout', admin: 'Admin', user: 'User', username: 'Username', password: 'Password', confirmPassword: 'Confirm Password', nickname: 'Nickname', email: 'Email', register: 'Register', noAccount: "Don't have an account? Register", defaultAccount: 'Default: admin / admin123', forgotPassword: 'Forgot Password?', forgotPasswordTitle: 'Reset Password', forgotPasswordDesc: 'Enter your username and we\'ll generate a new password for you', resetPassword: 'Reset Password', resetting: 'Resetting...', resetSuccess: 'Password has been reset!', newPassword: 'New Password', copyAndLogin: 'Copy and Login', signingIn: 'Signing in...', registering: 'Registering...', loginSuccess: 'Login successful!', loginFailed: 'Login failed. Please check your credentials', loginError: 'Login failed. Please check your connection', usernameRequired: 'Please enter username and password', usernameMinLength: 'Username must be at least 3 characters', passwordMinLength: 'Password must be at least 6 characters', passwordMismatch: 'Passwords do not match', registerSuccess: 'Registration successful! Please login', usernamePlaceholder: 'Enter username', passwordPlaceholder: 'Enter password', confirmPasswordPlaceholder: 'Confirm password', nicknamePlaceholder: '3-20 characters', passwordMinPlaceholder: 'At least 6 characters', entering: 'Entering the Nether...'
@@ -53,6 +53,14 @@ export default {
   },
   header: {
     connected: 'Connected', disconnected: 'Disconnected'
+  },
+  appeals: {
+    title: 'Appeals', pending: 'Pending', approved: 'Approved', rejected: 'Rejected',
+    approve: 'Approve', reject: 'Reject', confirmApprove: 'Approve this appeal? The punishment will be lifted.',
+    confirmReject: 'Reject this appeal?', noAppeals: 'No appeals', response: 'Admin Response'
+  },
+  audit: {
+    title: 'Audit Log', noRecords: 'No audit records'
   },
   ai: {
     assistant: 'AI Assistant', online: 'Online', offline: 'Offline', welcome: 'Hello! I am the anti-cheat AI assistant. I can help you analyze player behavior, handle reports, and answer system questions.', inputPlaceholder: 'Type your question...', disabledPlaceholder: 'AI is not enabled. Please configure API Key in settings', analyze: 'AI Analyze', analysisResult: 'AI Analysis Result', verdict: 'Verdict', confidence: 'Confidence', suggestedAction: 'Suggested Action', reasoning: 'Reasoning', error: 'AI analysis failed', networkError: 'Network error, please check AI service config', clearChat: 'Clear Chat', quickQ1: 'Who are the high-risk players recently?', quickQ2: 'Analyze today\'s detection trends', quickQ3: 'How does fly cheat detection work?', dashboardAnalysis: 'AI Dashboard Analysis', comprehensiveAnalysis: 'Comprehensive Analysis', riskLevel: 'Risk Level', suggestions: 'Suggestions', analyzing: 'AI is analyzing...', clickToAnalyze: 'Click the tab above to start AI analysis', evaluateBan: 'AI Evaluate', banEvaluation: 'AI Ban Evaluation', noPlayerData: 'Cannot get player data'

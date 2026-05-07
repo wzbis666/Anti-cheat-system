@@ -1,7 +1,9 @@
 package com.anticheat.backend.service;
 
 import com.anticheat.backend.model.Player;
+import com.anticheat.backend.model.PlayerSession;
 import com.anticheat.backend.repository.PlayerRepository;
+import com.anticheat.backend.repository.PlayerSessionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +22,27 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
 
     @Autowired
+    private PlayerSessionRepository sessionRepository;
+
+    @Autowired
     public PlayerService(PlayerRepository playerRepository) {
         this.playerRepository = playerRepository;
+    }
+
+    public Player getOrCreatePlayer(String playerName, String uuid, String ipAddress) {
+        Optional<Player> existingPlayer = playerRepository.findByUuid(uuid);
+        if (existingPlayer.isPresent()) {
+            Player player = existingPlayer.get();
+            player.setLastSeen(System.currentTimeMillis());
+            if (ipAddress != null) player.setLastIp(ipAddress);
+            if (!player.getPlayerName().equals(playerName)) {
+                player.setPlayerName(playerName);
+            }
+            return playerRepository.save(player);
+        }
+        Player player = getOrCreatePlayer(playerName, uuid);
+        if (ipAddress != null) player.setLastIp(ipAddress);
+        return playerRepository.save(player);
     }
 
     public Player getOrCreatePlayer(String playerName, String uuid) {
@@ -150,5 +171,38 @@ public class PlayerService {
         } else {
             throw new RuntimeException("玩家不存在: " + id);
         }
+    }
+
+    @Transactional
+    public PlayerSession recordLogin(String playerName, String uuid, String ipAddress, String serverName) {
+        Player player = getOrCreatePlayer(playerName, uuid, ipAddress);
+        PlayerSession session = new PlayerSession();
+        session.setPlayer(player);
+        session.setIpAddress(ipAddress);
+        session.setLoginTime(System.currentTimeMillis());
+        session.setServerName(serverName);
+        logger.info("记录玩家登录: {} IP={}", playerName, ipAddress);
+        return sessionRepository.save(session);
+    }
+
+    @Transactional
+    public void recordLogout(Long sessionId) {
+        sessionRepository.findById(sessionId).ifPresent(session -> {
+            session.setLogoutTime(System.currentTimeMillis());
+            session.setDuration(session.getLogoutTime() - session.getLoginTime());
+            sessionRepository.save(session);
+        });
+    }
+
+    public List<PlayerSession> getPlayerSessions(Long playerId) {
+        return sessionRepository.findByPlayerIdOrderByLoginTimeDesc(playerId);
+    }
+
+    public List<String> getPlayerDistinctIps(Long playerId) {
+        return sessionRepository.findDistinctIpsByPlayerId(playerId);
+    }
+
+    public List<Long> getOtherPlayersOnSameIp(String ipAddress, Long playerId) {
+        return sessionRepository.findOtherPlayersOnSameIp(ipAddress, playerId);
     }
 }

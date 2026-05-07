@@ -1,10 +1,12 @@
 package com.anticheat.backend.controller;
 
+import com.anticheat.backend.dto.*;
 import com.anticheat.backend.model.Admin;
 import com.anticheat.backend.model.User;
 import com.anticheat.backend.security.JwtUtils;
 import com.anticheat.backend.service.AdminService;
 import com.anticheat.backend.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,7 +46,17 @@ public class AuthController {
     }
 
     private boolean isRegisterRateLimited(String key) {
-        return isRateLimited(key, registerAttempts, 5, 60);
+        return isRegisterRateLimited(key, registerAttempts, 5, 60);
+    }
+
+    private boolean isRegisterRateLimited(String key, Map<String, LoginAttempt> attemptMap, int maxAttempts, int windowMinutes) {
+        LoginAttempt attempt = attemptMap.computeIfAbsent(key, k -> new LoginAttempt());
+        long now = System.currentTimeMillis();
+        if (now - attempt.lastAttemptTime > windowMinutes * 60 * 1000L) {
+            attempt.count.set(0);
+        }
+        attempt.lastAttemptTime = now;
+        return attempt.count.incrementAndGet() > maxAttempts;
     }
 
     private boolean isRateLimited(String key, Map<String, LoginAttempt> attemptMap, int maxAttempts, int windowMinutes) {
@@ -58,23 +70,20 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "用户名和密码不能为空"));
-        }
+    public ResponseEntity<ApiResponse<Map<String, Object>>> login(@Valid @RequestBody LoginRequest request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
 
         if (isRateLimited("admin:" + username)) {
-            return ResponseEntity.status(429).body(Map.of("success", false, "message", "登录尝试过于频繁，请15分钟后再试"));
+            return ResponseEntity.status(429)
+                    .body(ApiResponse.fail("登录尝试过于频繁，请15分钟后再试"));
         }
 
         if (adminService.validateLogin(username, password)) {
             loginAttempts.remove("admin:" + username);
             Optional<Admin> adminOpt = adminService.findByUsername(username);
             if (!adminOpt.isPresent()) {
-                return ResponseEntity.ok(Map.of("success", false, "message", "管理员账户异常"));
+                return ResponseEntity.ok(ApiResponse.fail("管理员账户异常"));
             }
             Admin admin = adminOpt.get();
 
@@ -88,36 +97,32 @@ public class AuthController {
             adminInfo.put("avatar", admin.getAvatar());
             adminInfo.put("role", admin.getRole());
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "登录成功",
-                "userType", "admin",
-                "user", adminInfo,
-                "token", token
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("userType", "admin");
+            result.put("user", adminInfo);
+            result.put("token", token);
+
+            return ResponseEntity.ok(ApiResponse.ok(result, "登录成功"));
         }
 
-        return ResponseEntity.ok(Map.of("success", false, "message", "用户名或密码错误"));
+        return ResponseEntity.ok(ApiResponse.fail("用户名或密码错误"));
     }
 
     @PostMapping("/user/login")
-    public ResponseEntity<Map<String, Object>> userLogin(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "用户名和密码不能为空"));
-        }
+    public ResponseEntity<ApiResponse<Map<String, Object>>> userLogin(@Valid @RequestBody LoginRequest request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
 
         if (isRateLimited("user:" + username)) {
-            return ResponseEntity.status(429).body(Map.of("success", false, "message", "登录尝试过于频繁，请15分钟后再试"));
+            return ResponseEntity.status(429)
+                    .body(ApiResponse.fail("登录尝试过于频繁，请15分钟后再试"));
         }
 
         if (userService.validateLogin(username, password)) {
             loginAttempts.remove("user:" + username);
             Optional<User> userOpt = userService.findByUsername(username);
             if (!userOpt.isPresent()) {
-                return ResponseEntity.ok(Map.of("success", false, "message", "用户账户异常"));
+                return ResponseEntity.ok(ApiResponse.fail("用户账户异常"));
             }
             User user = userOpt.get();
 
@@ -133,40 +138,31 @@ public class AuthController {
             userInfo.put("mcUuid", user.getMcUuid());
             userInfo.put("userType", "user");
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "登录成功",
-                "userType", "user",
-                "user", userInfo,
-                "token", token
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("userType", "user");
+            result.put("user", userInfo);
+            result.put("token", token);
+
+            return ResponseEntity.ok(ApiResponse.ok(result, "登录成功"));
         }
 
-        return ResponseEntity.ok(Map.of("success", false, "message", "用户名或密码错误"));
+        return ResponseEntity.ok(ApiResponse.fail("用户名或密码错误"));
     }
 
     @PostMapping("/user/register")
-    public ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-        String email = request.get("email");
-        String nickname = request.get("nickname");
-
-        if (username == null || username.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "用户名不能为空"));
-        }
-
-        if (password == null || password.length() < 6) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "密码长度不能少于6位"));
-        }
+    public ResponseEntity<ApiResponse<Map<String, Object>>> register(@Valid @RequestBody RegisterRequest request) {
+        String username = request.getUsername();
+        String password = request.getPassword();
+        String email = request.getEmail();
+        String nickname = request.getNickname();
 
         if (isRegisterRateLimited("register:" + username)) {
-            return ResponseEntity.status(429).body(Map.of("success", false, "message", "注册尝试过于频繁，请60分钟后再试"));
+            return ResponseEntity.status(429)
+                    .body(ApiResponse.fail("注册尝试过于频繁，请60分钟后再试"));
         }
 
         try {
             User user = userService.register(username, password, email, nickname);
-
             String token = jwtUtils.generateToken(username, "USER", user.getId());
 
             Map<String, Object> userInfo = new HashMap<>();
@@ -176,21 +172,21 @@ public class AuthController {
             userInfo.put("email", user.getEmail());
             userInfo.put("userType", "user");
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "注册成功",
-                "user", userInfo,
-                "token", token
-            ));
+            Map<String, Object> result = new HashMap<>();
+            result.put("user", userInfo);
+            result.put("token", token);
+
+            return ResponseEntity.ok(ApiResponse.ok(result, "注册成功"));
         } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage()));
         }
     }
 
     @GetMapping("/validate")
-    public ResponseEntity<Map<String, Object>> validateToken(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> validateToken(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.ok(Map.of("valid", false, "message", "No token provided"));
+            return ResponseEntity.ok(ApiResponse.fail("No token provided"));
         }
 
         String token = authHeader.substring(7);
@@ -200,21 +196,22 @@ public class AuthController {
             String role = jwtUtils.getRoleFromToken(token);
             Long userId = jwtUtils.getUserIdFromToken(token);
 
-            return ResponseEntity.ok(Map.of(
-                "valid", true,
-                "username", username,
-                "role", role,
-                "userId", userId
-            ));
+            Map<String, Object> data = new HashMap<>();
+            data.put("valid", true);
+            data.put("username", username);
+            data.put("role", role);
+            data.put("userId", userId);
+
+            return ResponseEntity.ok(ApiResponse.ok(data));
         }
 
-        return ResponseEntity.ok(Map.of("valid", false, "message", "Invalid token"));
+        return ResponseEntity.ok(ApiResponse.of(false, "Invalid token", Map.of("valid", false)));
     }
 
     @GetMapping("/user/profile/{id}")
-    public ResponseEntity<Map<String, Object>> getUserProfile(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getUserProfile(@PathVariable Long id) {
         if (!isOwnerOrAdmin(id, "USER")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权访问"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权访问"));
         }
         Optional<User> userOpt = userService.findById(id);
         if (userOpt.isPresent()) {
@@ -231,70 +228,56 @@ public class AuthController {
             userInfo.put("lastLoginTime", user.getLastLoginTime());
             userInfo.put("userType", "user");
 
-            return ResponseEntity.ok(userInfo);
+            return ResponseEntity.ok(ApiResponse.ok(userInfo));
         }
         return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/user/profile/{id}")
-    public ResponseEntity<Map<String, Object>> updateUserProfile(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateUserProfile(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody UpdateProfileRequest request) {
         if (!isOwnerOrAdmin(id, "USER")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权修改他人资料"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权修改他人资料"));
         }
         try {
-            String nickname = request.get("nickname");
-            String email = request.get("email");
-            String avatar = request.get("avatar");
-            String mcUsername = request.get("mcUsername");
-            String mcUuid = request.get("mcUuid");
+            User user = userService.updateProfile(id, request.getNickname(), request.getEmail(),
+                    request.getAvatar(), request.getMcUsername(), request.getMcUuid());
 
-            User user = userService.updateProfile(id, nickname, email, avatar, mcUsername, mcUuid);
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", user.getId());
+            userData.put("username", user.getUsername());
+            userData.put("nickname", user.getNickname());
+            userData.put("email", user.getEmail());
+            userData.put("avatar", user.getAvatar());
+            userData.put("mcUsername", user.getMcUsername());
+            userData.put("mcUuid", user.getMcUuid());
 
-            return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", "资料更新成功",
-                "user", Map.of(
-                    "id", user.getId(),
-                    "username", user.getUsername(),
-                    "nickname", user.getNickname(),
-                    "email", user.getEmail(),
-                    "avatar", user.getAvatar(),
-                    "mcUsername", user.getMcUsername(),
-                    "mcUuid", user.getMcUuid()
-                )
-            ));
+            return ResponseEntity.ok(ApiResponse.ok(userData, "资料更新成功"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
         }
     }
 
     @PostMapping("/user/password/{id}")
-    public ResponseEntity<Map<String, Object>> changeUserPassword(
+    public ResponseEntity<ApiResponse<Void>> changeUserPassword(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody ChangePasswordRequest request) {
         if (!isOwnerOrAdmin(id, "USER")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权修改他人密码"));
-        }
-        String oldPassword = request.get("oldPassword");
-        String newPassword = request.get("newPassword");
-
-        if (oldPassword == null || newPassword == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "密码不能为空"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权修改他人密码"));
         }
 
-        if (userService.changePassword(id, oldPassword, newPassword)) {
-            return ResponseEntity.ok(Map.of("success", true, "message", "密码修改成功"));
+        if (userService.changePassword(id, request.getOldPassword(), request.getNewPassword())) {
+            return ResponseEntity.ok(ApiResponse.ok(null, "密码修改成功"));
         }
 
-        return ResponseEntity.ok(Map.of("success", false, "message", "原密码错误"));
+        return ResponseEntity.ok(ApiResponse.fail("原密码错误"));
     }
 
     @GetMapping("/profile/{id}")
-    public ResponseEntity<Map<String, Object>> getProfile(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getProfile(@PathVariable Long id) {
         if (!isOwnerOrAdmin(id, "ADMIN")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权访问他人资料"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权访问他人资料"));
         }
         Optional<Admin> adminOpt = adminService.findById(id);
         if (adminOpt.isPresent()) {
@@ -309,24 +292,20 @@ public class AuthController {
             adminInfo.put("createdTime", admin.getCreatedTime());
             adminInfo.put("lastLoginTime", admin.getLastLoginTime());
 
-            return ResponseEntity.ok(adminInfo);
+            return ResponseEntity.ok(ApiResponse.ok(adminInfo));
         }
         return ResponseEntity.notFound().build();
     }
 
     @PostMapping("/profile/{id}")
-    public ResponseEntity<Map<String, Object>> updateProfile(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateProfile(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody UpdateProfileRequest request) {
         if (!isOwnerOrAdmin(id, "ADMIN")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权修改他人资料"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权修改他人资料"));
         }
         try {
-            String nickname = request.get("nickname");
-            String email = request.get("email");
-            String avatar = request.get("avatar");
-
-            Admin admin = adminService.updateProfile(id, nickname, email, avatar);
+            Admin admin = adminService.updateProfile(id, request.getNickname(), request.getEmail(), request.getAvatar());
 
             Map<String, Object> adminData = new HashMap<>();
             adminData.put("id", admin.getId());
@@ -335,36 +314,42 @@ public class AuthController {
             adminData.put("email", admin.getEmail());
             adminData.put("avatar", admin.getAvatar());
 
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("message", "资料更新成功");
-            result.put("admin", adminData);
-
-            return ResponseEntity.ok(result);
+            return ResponseEntity.ok(ApiResponse.ok(adminData, "资料更新成功"));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.fail(e.getMessage()));
         }
     }
 
     @PostMapping("/password/{id}")
-    public ResponseEntity<Map<String, Object>> changePassword(
+    public ResponseEntity<ApiResponse<Void>> changePassword(
             @PathVariable Long id,
-            @RequestBody Map<String, String> request) {
+            @Valid @RequestBody ChangePasswordRequest request) {
         if (!isOwnerOrAdmin(id, "ADMIN")) {
-            return ResponseEntity.status(403).body(Map.of("success", false, "message", "无权修改他人密码"));
-        }
-        String oldPassword = request.get("oldPassword");
-        String newPassword = request.get("newPassword");
-
-        if (oldPassword == null || newPassword == null) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "密码不能为空"));
+            return ResponseEntity.status(403).body(ApiResponse.fail("无权修改他人密码"));
         }
 
-        if (adminService.changePassword(id, oldPassword, newPassword)) {
-            return ResponseEntity.ok(Map.of("success", true, "message", "密码修改成功"));
+        if (adminService.changePassword(id, request.getOldPassword(), request.getNewPassword())) {
+            return ResponseEntity.ok(ApiResponse.ok(null, "密码修改成功"));
         }
 
-        return ResponseEntity.ok(Map.of("success", false, "message", "原密码错误"));
+        return ResponseEntity.ok(ApiResponse.fail("原密码错误"));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String username = request.getUsername();
+        String userType = request.getUserType();
+
+        try {
+            if ("user".equals(userType)) {
+                userService.resetPassword(username);
+            } else {
+                adminService.resetPassword(username);
+            }
+            return ResponseEntity.ok(ApiResponse.ok(null, "密码重置成功，新密码已发送至注册邮箱"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(ApiResponse.fail(e.getMessage()));
+        }
     }
 
     private boolean isOwnerOrAdmin(Long targetId, String targetType) {
@@ -377,7 +362,6 @@ public class AuthController {
 
         Object principal = auth.getPrincipal();
         if (principal instanceof String) {
-            String username = (String) principal;
             try {
                 String token = getTokenFromContext();
                 if (token != null) {
@@ -405,31 +389,5 @@ public class AuthController {
             return bearerToken.substring(7);
         }
         return null;
-    }
-
-    @PostMapping("/forgot-password")
-    public ResponseEntity<Map<String, Object>> forgotPassword(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String userType = request.getOrDefault("userType", "admin");
-        
-        if (username == null || username.trim().isEmpty()) {
-            return ResponseEntity.ok(Map.of("success", false, "message", "请输入用户名"));
-        }
-        
-        try {
-            String newPassword;
-            if ("user".equals(userType)) {
-                newPassword = userService.resetPassword(username);
-            } else {
-                newPassword = adminService.resetPassword(username);
-            }
-            Map<String, Object> result = new HashMap<>();
-            result.put("success", true);
-            result.put("message", "密码重置成功");
-            result.put("newPassword", newPassword);
-            return ResponseEntity.ok(result);
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("success", false, "message", e.getMessage()));
-        }
     }
 }

@@ -38,5 +38,8 @@ export const Events = {
   PLAYER_BANNED: 'player:banned',
   PLAYER_UNBANNED: 'player:unbanned',
   REPORT_HANDLED: 'report:handled',
-  CHEAT_DETECTED: 'cheat:detected'
+  CHEAT_DETECTED: 'cheat:detected',
+  WS_STATUS: 'ws:status',
+  WS_CHEAT_DATA: 'ws:cheatData',
+  AI_STATUS: 'ai:status'
 }

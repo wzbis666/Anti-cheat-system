@@ -26,6 +26,15 @@ public class CheatRecord {
     @Column(name = "details")
     private String details;
 
+    @Column(name = "detection_method")
+    private String detectionMethod;
+
+    @Column(name = "evidence", length = 2000)
+    private String evidence;
+
+    @Column(name = "server_name")
+    private String serverName;
+
     // Getters and setters
     public Long getId() {
         return id;
@@ -74,4 +83,13 @@ public class CheatRecord {
     public void setDetails(String details) {
         this.details = details;
     }
+
+    public String getDetectionMethod() { return detectionMethod; }
+    public void setDetectionMethod(String detectionMethod) { this.detectionMethod = detectionMethod; }
+
+    public String getEvidence() { return evidence; }
+    public void setEvidence(String evidence) { this.evidence = evidence; }
+
+    public String getServerName() { return serverName; }
+    public void setServerName(String serverName) { this.serverName = serverName; }
 }

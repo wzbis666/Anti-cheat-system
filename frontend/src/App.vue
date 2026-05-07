@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="app-container" :data-theme="theme">
     <canvas class="crt-overlay-canvas" ref="crtCanvas"></canvas>
     <canvas class="terminal-particle-canvas" ref="particleCanvas"></canvas>
@@ -33,38 +33,33 @@
       </header>
 
       <main class="hud-content">
-        <transition name="hud-page" mode="out-in">
-          <Dashboard v-if="currentView === 'dashboard'" key="dashboard" />
-          <Players v-else-if="currentView === 'players'" key="players" />
-          <Cheats v-else-if="currentView === 'cheats'" key="cheats" />
-          <Reports v-else-if="currentView === 'reports'" key="reports" @update-badge="updateReportsBadge" />
-          <Punishments v-else-if="currentView === 'punishments'" key="punishments" />
-          <Whitelist v-else-if="currentView === 'whitelist'" key="whitelist" />
-          <Settings v-else-if="currentView === 'settings'" key="settings" />
-          <Profile v-else-if="currentView === 'profile'" key="profile" :admin="adminInfo" @update-admin="handleUpdateAdmin" />
-        </transition>
+        <router-view v-slot="{ Component }">
+          <transition name="hud-page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </main>
 
       <nav class="hud-hotbar">
         <div class="hotbar-track">
-          <button
+          <router-link
             v-for="item in navItems"
             :key="item.path"
-            :class="['hotbar-slot', { active: currentView === item.path }]"
-            @click="currentView = item.path"
+            :to="'/' + item.path"
+            :class="['hotbar-slot', { active: currentRoute === item.path }]"
             :title="item.label"
           >
             <span class="hs-icon" v-html="item.icon"></span>
             <span v-if="item.badge" class="hs-badge">{{ item.badge }}</span>
-          </button>
+          </router-link>
 
-          <button :class="['hotbar-slot', { active: currentView === 'settings' }]" @click="currentView = 'settings'" :title="t('nav.settings')">
+          <router-link to="/settings" :class="['hotbar-slot', { active: currentRoute === 'settings' }]" :title="t('nav.settings')">
             <span class="hs-icon"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></span>
-          </button>
+          </router-link>
 
-          <button :class="['hotbar-slot', { active: currentView === 'profile' }]" @click="currentView = 'profile'" :title="adminInfo.nickname || adminInfo.username">
+          <router-link to="/profile" :class="['hotbar-slot', { active: currentRoute === 'profile' }]" :title="adminInfo.nickname || adminInfo.username">
             <img :src="userAvatar" class="hs-head" />
-          </button>
+          </router-link>
         </div>
         <div class="hotbar-info">
           <span class="hi-label">{{ currentTitle }}</span>
@@ -113,14 +108,14 @@
                 <div><div class="si-label">{{ p.playerName }}</div><div class="si-sub">{{ p.uuid }}</div></div>
               </div>
               <div v-if="searchResults.cheats.length" class="search-group">{{ t('nav.cheats') }}</div>
-              <div v-for="c in searchResults.cheats" :key="'c-'+c.id" class="search-item" @click="currentView='cheats';showGlobalSearch=false">
+              <div v-for="c in searchResults.cheats" :key="'c-'+c.id" class="search-item" @click="router.push('/cheats');showGlobalSearch=false">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M13 14h-2v-4h2m0 8h-2v-2h2M1 5h22l-2 18H3L1 5z"/></svg>
                 <div><div class="si-label">{{ c.cheatType }} - {{ c.player?.playerName }}</div><div class="si-sub">{{ c.details }}</div></div>
               </div>
             </template>
             <template v-else>
               <div class="search-group">{{ t('dashboard.quickNav') }}</div>
-              <div v-for="item in navItems" :key="item.path" class="search-item" @click="currentView=item.path;showGlobalSearch=false">
+              <div v-for="item in navItems" :key="item.path" class="search-item" @click="router.push('/'+item.path);showGlobalSearch=false">
                 <span v-html="item.icon"></span>
                 <div><div class="si-label">{{ item.label }}</div></div>
               </div>
@@ -133,19 +128,11 @@
     <AiAssistant />
   </div>
 </template>
-
 <script>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter, useRoute } from 'vue-router'
 import Login from './views/Login.vue'
-import Dashboard from './views/Dashboard.vue'
-import Players from './views/Players.vue'
-import Cheats from './views/Cheats.vue'
-import Reports from './views/Reports.vue'
-import Punishments from './views/Punishments.vue'
-import Whitelist from './views/Whitelist.vue'
-import Settings from './views/Settings.vue'
-import Profile from './views/Profile.vue'
 import AiAssistant from './components/AiAssistant.vue'
 import { getWsUrl, authApi, reportApi, playerApi, cheatApi, onAuthError } from './api'
 import { setLocale } from './i18n'
@@ -153,11 +140,12 @@ import { EventBus, Events } from './utils/eventBus'
 
 export default {
   name: 'App',
-  components: { Login, Dashboard, Players, Cheats, Reports, Punishments, Whitelist, Settings, Profile, AiAssistant },
+  components: { Login, AiAssistant },
   setup() {
     const { t } = useI18n()
+    const router = useRouter()
+    const route = useRoute()
     const isLoggedIn = ref(false)
-    const currentView = ref('dashboard')
     const adminInfo = ref({})
     const wsConnected = ref(false)
     const currentTime = ref('')
@@ -172,7 +160,6 @@ export default {
     const searchResults = ref({ players: [], cheats: [] })
     const crtCanvas = ref(null)
     const particleCanvas = ref(null)
-    const uptimeStart = ref(Date.now())
     let timeInterval = null
     let crtAnimFrame = null
     let particleAnimFrame = null
@@ -187,28 +174,19 @@ export default {
       { path: 'cheats', label: t('nav.cheats'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13 14h-2v-4h2m0 8h-2v-2h2M1 5h22l-2 18H3L1 5z"/></svg>' },
       { path: 'reports', label: t('nav.reports'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6m-1 2l5 5h-5V4z"/></svg>', badge: reportsBadge.value || null },
       { path: 'punishments', label: t('nav.punishments'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' },
+      { path: 'appeals', label: t('nav.appeals'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12zm-6-5.4V9h-4v1.6h4zm-2-5C9.2 5.6 7.2 7.6 7.2 10c0 2.4 2 4.4 4.4 4.4.6 0 1.2-.1 1.8-.4l2.4 2.4 1.2-1.2-2.4-2.4c.3-.6.4-1.2.4-1.8 0-2.4-2-4.4-4.4-4.4z"/></svg>' },
+      { path: 'audit', label: t('nav.audit'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>' },
       { path: 'whitelist', label: t('nav.whitelist'), icon: '<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>' }
     ])
 
-    const currentTitle = computed(() => {
-      const item = navItems.value.find(i => i.path === currentView.value)
-      return item ? item.label : ''
-    })
-
-    const userAvatar = computed(() => `https://mc-heads.net/avatar/${adminInfo.value.username || 'Steve'}/32`)
+    const currentRoute = computed(() => route.name || 'dashboard')
+    const currentTitle = computed(() => { const item = navItems.value.find(i => i.path === currentRoute.value); return item ? item.label : '' })
+    const userAvatar = computed(() => 'https://mc-heads.net/avatar/' + (adminInfo.value.username || 'Steve') + '/32')
     const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
-    const uptimeStr = computed(() => {
-      const diff = Math.floor((Date.now() - uptimeStart.value) / 1000)
-      const h = Math.floor(diff / 3600).toString().padStart(2, '0')
-      const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0')
-      const s = (diff % 60).toString().padStart(2, '0')
-      return `${h}:${m}:${s}`
-    })
 
     const toggleTheme = () => { theme.value = theme.value === 'dark' ? 'light' : 'dark'; localStorage.setItem('theme', theme.value) }
     const switchLanguage = (locale) => { setLocale(locale); currentLocale.value = locale }
-    const handleLoginSuccess = (admin) => { adminInfo.value = admin; isLoggedIn.value = true; uptimeStart.value = Date.now(); fetchReportsCount(); initWebSocket() }
-    const handleUpdateAdmin = (admin) => { adminInfo.value = admin }
+    const handleLoginSuccess = (admin) => { adminInfo.value = admin; isLoggedIn.value = true; fetchReportsCount(); initWebSocket() }
     const handleLogout = () => { isLoggedIn.value = false; adminInfo.value = {}; localStorage.removeItem('admin'); localStorage.removeItem('token'); localStorage.removeItem('user'); closeWebSocket() }
     const updateReportsBadge = (count) => { reportsBadge.value = count }
 
@@ -224,8 +202,8 @@ export default {
     }
 
     const clearNotifications = () => { notifications.value = []; showNotifications.value = false }
-    const handleNotificationClick = (n) => { n.read = true; if (n.type === 'cheat') currentView.value = 'cheats'; else if (n.type === 'ban') currentView.value = 'punishments'; showNotifications.value = false }
-    const goToPlayer = (p) => { currentView.value = 'players'; showGlobalSearch.value = false }
+    const handleNotificationClick = (n) => { n.read = true; if (n.type === 'cheat') router.push('/cheats'); else if (n.type === 'ban') router.push('/punishments'); showNotifications.value = false }
+    const goToPlayer = (p) => { router.push('/players'); showGlobalSearch.value = false }
 
     const performSearch = async (q) => {
       if (!q) { searchResults.value = { players: [], cheats: [] }; return }
@@ -244,24 +222,26 @@ export default {
     const initWebSocket = () => {
       try {
         ws = new WebSocket(getWsUrl())
-        ws.onopen = () => { wsConnected.value = true; window.__wsConnected = true; EventBus.emit('ws:status', true); if (wsPingInterval) clearInterval(wsPingInterval); wsPingInterval = setInterval(() => { if (ws && ws.readyState === WebSocket.OPEN) ws.send('ping') }, 25000) }
+        ws.onopen = () => { wsConnected.value = true; EventBus.emit(Events.WS_STATUS, true); if (wsPingInterval) clearInterval(wsPingInterval); wsPingInterval = setInterval(() => { if (ws && ws.readyState === WebSocket.OPEN) ws.send('ping') }, 25000) }
         ws.onmessage = (event) => {
           if (event.data === 'pong') return
           const data = JSON.parse(event.data)
           if (data.type === 'cheat_detected') {
             EventBus.emit(Events.CHEAT_DETECTED, data); EventBus.emit(Events.STATS_CHANGED)
-            window.__lastCheatData = data; window.__lastCheatTime = Date.now()
-            addNotification('cheat', `${data.playerName} - ${data.cheatType}`, data.details)
+            EventBus.emit(Events.WS_CHEAT_DATA, data)
+            addNotification('cheat', data.playerName + ' - ' + data.cheatType, data.details)
           } else if (data.type === 'player_banned') {
             EventBus.emit(Events.PLAYER_BANNED, data); EventBus.emit(Events.STATS_CHANGED)
-            addNotification('ban', `${data.playerName} ${t('players.banned')}`, data.reason)
+            addNotification('ban', data.playerName + ' ' + t('players.banned'), data.reason)
           } else if (data.type === 'player_unbanned') {
             EventBus.emit(Events.PLAYER_UNBANNED, data); EventBus.emit(Events.STATS_CHANGED)
-            addNotification('ban', `${data.playerName} ${t('players.unban')}`, '')
+            addNotification('ban', data.playerName + ' ' + t('players.unban'), '')
+          } else if (data.type === 'rule_triggered') {
+            addNotification('system', data.ruleName, data.message)
           }
         }
-        ws.onclose = () => { wsConnected.value = false; window.__wsConnected = false; EventBus.emit('ws:status', false); scheduleReconnect() }
-        ws.onerror = () => { wsConnected.value = false; window.__wsConnected = false; EventBus.emit('ws:status', false) }
+        ws.onclose = () => { wsConnected.value = false; EventBus.emit(Events.WS_STATUS, false); scheduleReconnect() }
+        ws.onerror = () => { wsConnected.value = false; EventBus.emit(Events.WS_STATUS, false) }
       } catch (e) { scheduleReconnect() }
     }
 
@@ -271,137 +251,35 @@ export default {
     const handleKeydown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); showGlobalSearch.value = true }
       if (e.key === 'Escape') { showGlobalSearch.value = false; showNotifications.value = false }
+      if ((e.ctrlKey || e.metaKey) && !isNaN(e.key) && e.key >= '1' && e.key <= '9') { e.preventDefault(); const idx = parseInt(e.key) - 1; if (idx < navItems.value.length) { router.push('/' + navItems.value[idx].path) } }
     }
 
-    const initCrtScanlines = () => {
-      const canvas = crtCanvas.value
-      if (!canvas) return
-      const ctx = canvas.getContext('2d')
-      const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
-      resize()
-      window.addEventListener('resize', resize)
-      let offset = 0
-      const animate = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.025)'
-        const lineH = 3
-        for (let y = offset % lineH; y < canvas.height; y += lineH) {
-          ctx.fillRect(0, y, canvas.width, 1)
-        }
-        if (Math.random() < 0.015) {
-          const gy = Math.floor(Math.random() * canvas.height)
-          ctx.fillStyle = 'rgba(168, 85, 247, 0.035)'
-          ctx.fillRect(0, gy, canvas.width, Math.random() < 0.4 ? 4 : 1)
-        }
-        if (Math.random() < 0.005) {
-          const sx = Math.random() * canvas.width * 0.7
-          const sw = Math.random() * canvas.width * 0.25 + 60
-          ctx.fillStyle = 'rgba(6, 182, 212, 0.03)'
-          ctx.fillRect(sx, Math.random() * canvas.height, sw, 1)
-        }
-        offset += 0.4
-        crtAnimFrame = requestAnimationFrame(animate)
-      }
-      animate()
-    }
+    const initCrtScanlines = () => { const canvas = crtCanvas.value; if (!canvas) return; const ctx = canvas.getContext('2d'); const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }; resize(); window.addEventListener('resize', resize); let offset = 0; const animate = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = 'rgba(0, 0, 0, 0.025)'; for (let y = offset % 3; y < canvas.height; y += 3) { ctx.fillRect(0, y, canvas.width, 1) }; if (Math.random() < 0.015) { const gy = Math.floor(Math.random() * canvas.height); ctx.fillStyle = 'rgba(168, 85, 247, 0.035)'; ctx.fillRect(0, gy, canvas.width, Math.random() < 0.4 ? 4 : 1) }; if (Math.random() < 0.005) { ctx.fillStyle = 'rgba(6, 182, 212, 0.03)'; ctx.fillRect(Math.random() * canvas.width * 0.7, Math.random() * canvas.height, Math.random() * canvas.width * 0.25 + 60, 1) }; offset += 0.4; crtAnimFrame = requestAnimationFrame(animate) }; animate() }
 
-    const initTerminalParticles = () => {
-      const canvas = particleCanvas.value
-      if (!canvas) return
-      const ctx = canvas.getContext('2d')
-      const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
-      resize()
-      window.addEventListener('resize', resize)
-      const count = 60
-      const particles = []
-      const colors = ['rgba(168,85,247,', 'rgba(6,182,212,', 'rgba(16,185,129,']
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          size: Math.random() * 1.5 + 0.5,
-          color: colors[Math.floor(Math.random() * colors.length)] + (Math.random() * 0.25 + 0.1) + ')'
-        })
-      }
-      const animate = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i]
-          p.x += p.vx
-          p.y += p.vy
-          if (p.x < 0) p.x = canvas.width
-          if (p.x > canvas.width) p.x = 0
-          if (p.y < 0) p.y = canvas.height
-          if (p.y > canvas.height) p.y = 0
-          ctx.fillStyle = p.color
-          ctx.fillRect(p.x, p.y, p.size, p.size)
-          for (let j = i + 1; j < particles.length; j++) {
-            const p2 = particles[j]
-            const dx = p.x - p2.x
-            const dy = p.y - p2.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < 120) {
-              ctx.strokeStyle = 'rgba(168,85,247,' + (0.06 * (1 - dist / 120)) + ')'
-              ctx.lineWidth = 0.5
-              ctx.beginPath()
-              ctx.moveTo(p.x, p.y)
-              ctx.lineTo(p2.x, p2.y)
-              ctx.stroke()
-            }
-          }
-        }
-        particleAnimFrame = requestAnimationFrame(animate)
-      }
-      animate()
-    }
+    const initTerminalParticles = () => { const canvas = particleCanvas.value; if (!canvas) return; const ctx = canvas.getContext('2d'); const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight }; resize(); window.addEventListener('resize', resize); const particles = []; const colors = ['rgba(168,85,247,', 'rgba(6,182,212,', 'rgba(16,185,129,']; for (let i = 0; i < 40; i++) { particles.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, size: Math.random() * 1.5 + 0.5, color: colors[Math.floor(Math.random() * colors.length)] + (Math.random() * 0.25 + 0.1) + ')' }) }; const animate = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); for (let i = 0; i < particles.length; i++) { const p = particles[i]; p.x += p.vx; p.y += p.vy; if (p.x < 0) p.x = canvas.width; if (p.x > canvas.width) p.x = 0; if (p.y < 0) p.y = canvas.height; if (p.y > canvas.height) p.y = 0; ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size); for (let j = i + 1; j < particles.length; j++) { const p2 = particles[j]; const dx = p.x - p2.x; const dy = p.y - p2.y; const dist = Math.sqrt(dx * dx + dy * dy); if (dist < 120) { ctx.strokeStyle = 'rgba(168,85,247,' + (0.06 * (1 - dist / 120)) + ')'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p2.x, p2.y); ctx.stroke() } } }; particleAnimFrame = requestAnimationFrame(animate) }; animate() }
 
     onMounted(async () => {
-      onAuthError(() => {
-        isLoggedIn.value = false
-        adminInfo.value = {}
-        closeWebSocket()
-      })
-
+      onAuthError(() => { isLoggedIn.value = false; adminInfo.value = {}; closeWebSocket() })
       const savedAdmin = localStorage.getItem('admin') || localStorage.getItem('user')
       const savedToken = localStorage.getItem('token')
       if (savedAdmin && savedToken) {
         try {
           const result = await authApi.validateToken()
-          if (result.valid) {
-            adminInfo.value = JSON.parse(savedAdmin)
-            isLoggedIn.value = true
-            fetchReportsCount()
-            initWebSocket()
-          } else {
-            localStorage.removeItem('admin')
-            localStorage.removeItem('token')
-          }
-        } catch (e) {
-          localStorage.removeItem('admin')
-          localStorage.removeItem('token')
-        }
+          if (result.valid) { adminInfo.value = JSON.parse(savedAdmin); isLoggedIn.value = true; fetchReportsCount(); initWebSocket() }
+          else { localStorage.removeItem('admin'); localStorage.removeItem('token') }
+        } catch (e) { localStorage.removeItem('admin'); localStorage.removeItem('token') }
       }
       updateTime(); timeInterval = setInterval(updateTime, 1000)
-      initCrtScanlines()
-      initTerminalParticles()
+      initCrtScanlines(); initTerminalParticles()
       document.addEventListener('keydown', handleKeydown)
     })
 
     onUnmounted(() => { if (timeInterval) clearInterval(timeInterval); if (crtAnimFrame) cancelAnimationFrame(crtAnimFrame); if (particleAnimFrame) cancelAnimationFrame(particleAnimFrame); closeWebSocket(); document.removeEventListener('keydown', handleKeydown) })
 
-    return {
-      t, isLoggedIn, currentView, adminInfo, wsConnected, currentTime, reportsBadge, currentLocale, theme,
-      showNotifications, showGlobalSearch, searchQuery, searchInput, notifications, searchResults,
-      navItems, currentTitle, userAvatar, unreadCount, uptimeStr, crtCanvas, particleCanvas,
-      toggleTheme, switchLanguage, handleLoginSuccess, handleUpdateAdmin, handleLogout, updateReportsBadge,
-      clearNotifications, handleNotificationClick, goToPlayer
-    }
+    return { t, router, isLoggedIn, adminInfo, wsConnected, currentTime, reportsBadge, currentLocale, theme, showNotifications, showGlobalSearch, searchQuery, searchInput, notifications, searchResults, navItems, currentRoute, currentTitle, userAvatar, unreadCount, crtCanvas, particleCanvas, toggleTheme, switchLanguage, handleLoginSuccess, handleLogout, updateReportsBadge, clearNotifications, handleNotificationClick, goToPlayer }
   }
 }
 </script>
-
 <style scoped>
 /* ========== CANVAS OVERLAYS ========== */
 .crt-overlay-canvas {

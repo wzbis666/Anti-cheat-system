@@ -1,5 +1,6 @@
 package com.anticheat.backend.controller;
 
+import com.anticheat.backend.dto.ApiResponse;
 import com.anticheat.backend.service.CheatRecordService;
 import com.anticheat.backend.service.PlayerService;
 import com.anticheat.backend.service.PunishmentService;
@@ -7,8 +8,7 @@ import com.anticheat.backend.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/stats")
@@ -23,7 +23,7 @@ public class StatsController {
     private static final int MEDIUM_RISK_MIN = 5;
 
     @Autowired
-    public StatsController(PlayerService playerService, 
+    public StatsController(PlayerService playerService,
                           CheatRecordService cheatRecordService,
                           PunishmentService punishmentService,
                           ReportService reportService) {
@@ -34,7 +34,7 @@ public class StatsController {
     }
 
     @GetMapping("/overview")
-    public Map<String, Object> getOverviewStats() {
+    public ApiResponse<Map<String, Object>> getOverviewStats() {
         Map<String, Object> stats = new HashMap<>();
 
         long totalPlayers = playerService.getTotalPlayers();
@@ -58,21 +58,27 @@ public class StatsController {
         long pendingReports = reportService.getPendingCount();
         stats.put("pendingReports", pendingReports);
 
-        return stats;
+        return ApiResponse.ok(stats);
     }
 
     @GetMapping("/cheat-types")
-    public Map<String, Integer> getCheatTypeStats() {
-        return cheatRecordService.getCheatTypeStatistics();
+    public ApiResponse<Map<String, Integer>> getCheatTypeStats() {
+        return ApiResponse.ok(cheatRecordService.getCheatTypeStatistics());
     }
 
     @GetMapping("/recent")
-    public Map<String, Object> getRecentStats(@RequestParam(defaultValue = "24") int hours) {
-        Map<String, Object> stats = new HashMap<>();
+    public ApiResponse<Map<String, Object>> getRecentStats(@RequestParam(defaultValue = "24") int hours) {
         long startTime = System.currentTimeMillis() - (hours * 60 * 60 * 1000L);
         long recentCheats = cheatRecordService.getRecentCheatsCount(startTime);
+
+        // Get hourly breakdown for trend chart
+        List<Map<String, Object>> hourlyData = cheatRecordService.getHourlyBreakdown(startTime);
+
+        Map<String, Object> stats = new HashMap<>();
         stats.put("recentCheats", recentCheats);
         stats.put("hours", hours);
-        return stats;
+        stats.put("hourlyData", hourlyData);
+
+        return ApiResponse.ok(stats);
     }
 }

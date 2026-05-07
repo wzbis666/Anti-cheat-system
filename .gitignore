@@ -1,13 +1,55 @@
+# Dependencies
 node_modules/
+.m2/
+.m2repo/
+local-repo/
+
+# Build outputs
 dist/
 target/
+bin/
+
+# Compiled classes
 *.class
 *.jar
 *.war
+
+# Logs
 *.log
+logs/
+
+# Environment variables
 .env
 .env.local
-.m2/
+.env.development.local
+.env.production.local
+
+# IDE/Editor
 .vscode/
 .idea/
 *.iml
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Local configurations
+*.local
+config/local/
+application-local.yml
+
+# Claude AI worktrees
+.claude/
+
+# Video files
+*.mp4
+*.mov
+*.avi
+*.webm

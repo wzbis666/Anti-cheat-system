@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿<template>
   <div class="cheats-terminal">
     <div class="ct-header">
       <div class="ct-prompt">

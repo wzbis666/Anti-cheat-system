@@ -3,7 +3,7 @@ export default {
     loading: '加载中...', noData: '暂无数据', confirm: '确认', cancel: '取消', delete: '删除', edit: '编辑', save: '保存', search: '搜索', actions: '操作', status: '状态', time: '时间', details: '详情', view: '查看', close: '关闭', add: '添加', enable: '启用', disable: '禁用', all: '全部', success: '操作成功', error: '操作失败', warning: '警告', info: '信息', logout: '退出登录'
   },
   nav: {
-    dashboard: '仪表盘', players: '玩家管理', cheats: '作弊记录', reports: '举报管理', punishments: '封禁管理', whitelist: '白名单', settings: '系统设置', main: '主要', management: '管理'
+    dashboard: '仪表盘', players: '玩家管理', cheats: '作弊记录', reports: '举报管理', punishments: '封禁管理', whitelist: '白名单', settings: '系统设置', appeals: '申诉管理', audit: '审计日志', main: '主要', management: '管理'
   },
   auth: {
     login: '登录', logout: '退出登录', admin: '管理员', user: '用户', username: '用户名', password: '密码', confirmPassword: '确认密码', nickname: '昵称', email: '邮箱', register: '注册', noAccount: '没有账号？立即注册', defaultAccount: '默认账号: admin / admin123', forgotPassword: '忘记密码？', forgotPasswordTitle: '重置密码', forgotPasswordDesc: '请输入您的用户名，系统将为您生成新密码', resetPassword: '重置密码', resetting: '重置中...', resetSuccess: '密码已重置！', newPassword: '新密码', copyAndLogin: '复制后去登录', signingIn: '登录中...', registering: '注册中...', loginSuccess: '登录成功！', loginFailed: '登录失败，请检查用户名和密码', loginError: '登录失败，请检查网络连接', usernameRequired: '请输入用户名和密码', usernameMinLength: '用户名至少3个字符', passwordMinLength: '密码至少6个字符', passwordMismatch: '两次密码不一致', registerSuccess: '注册成功！请登录', usernamePlaceholder: '请输入用户名', passwordPlaceholder: '请输入密码', confirmPasswordPlaceholder: '确认密码', nicknamePlaceholder: '3-20个字符', passwordMinPlaceholder: '至少6个字符', entering: '正在穿过地狱门...'
@@ -53,6 +53,14 @@ export default {
   },
   header: {
     connected: '已连接', disconnected: '未连接'
+  },
+  appeals: {
+    title: '申诉管理', pending: '待处理', approved: '已批准', rejected: '已驳回',
+    approve: '批准申诉', reject: '驳回申诉', confirmApprove: '确定批准此申诉？将解除对应处罚',
+    confirmReject: '确定驳回此申诉？', noAppeals: '暂无申诉', response: '管理员回复'
+  },
+  audit: {
+    title: '审计日志', noRecords: '暂无审计记录'
   },
   ai: {
     assistant: 'AI 助手', online: '在线', offline: '离线', welcome: '你好！我是反作弊AI助手，可以帮你分析玩家行为、处理举报、回答系统相关问题。', inputPlaceholder: '输入你的问题...', disabledPlaceholder: 'AI功能未启用，请在设置中配置API Key', analyze: 'AI 分析', analysisResult: 'AI 分析结果', verdict: '判定', confidence: '置信度', suggestedAction: '建议操作', reasoning: '推理过程', error: 'AI分析失败', networkError: '网络错误，请检查AI服务配置', clearChat: '清空对话', quickQ1: '最近有哪些高风险玩家？', quickQ2: '帮我分析今天的检测趋势', quickQ3: '飞行作弊的检测原理是什么？', dashboardAnalysis: 'AI 仪表盘分析', comprehensiveAnalysis: '综合分析', riskLevel: '风险等级', suggestions: '优化建议', analyzing: 'AI 正在分析...', clickToAnalyze: '点击上方标签开始AI分析', evaluateBan: 'AI 评估', banEvaluation: 'AI 封禁评估', noPlayerData: '无法获取玩家数据'
