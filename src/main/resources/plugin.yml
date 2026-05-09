@@ -8,11 +8,11 @@ description: A comprehensive anti-cheat plugin for Spigot servers
 commands:
   anticheat:
     description: AntiCheat main command
-    usage: /anticheat [reload|status|clear <player>]
+    usage: /anticheat [reload|status|clear <player>|cache]
     permission: anticheat.admin
   ac:
     description: AntiCheat short command
-    usage: /ac [reload|status|clear <player>]
+    usage: /ac [reload|status|clear <player>|cache]
     permission: anticheat.admin
   report:
     description: Report a player for cheating or other violations

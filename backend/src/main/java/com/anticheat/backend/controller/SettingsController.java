@@ -1,6 +1,7 @@
 package com.anticheat.backend.controller;
 
 import com.anticheat.backend.dto.ApiResponse;
+import com.anticheat.backend.handler.CheatWebSocketHandler;
 import com.anticheat.backend.security.JwtUtils;
 import com.anticheat.backend.service.AuditLogService;
 import com.anticheat.backend.service.SystemSettingsService;
@@ -21,6 +22,9 @@ public class SettingsController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    @Autowired
+    private CheatWebSocketHandler webSocketHandler;
 
     @Autowired
     public SettingsController(SystemSettingsService settingsService) {
@@ -75,6 +79,44 @@ public class SettingsController {
     public ResponseEntity<ApiResponse<Void>> initDefaultSettings() {
         settingsService.initDefaultSettings();
         return ResponseEntity.ok(ApiResponse.ok(null, "默认设置已初始化"));
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<ApiResponse<Void>> syncToPlugin() {
+        try {
+            Map<String, Object> syncMessage = Map.of(
+                "type", "CONFIG_SYNC",
+                "timestamp", System.currentTimeMillis()
+            );
+            webSocketHandler.broadcastCheatData(syncMessage);
+            return ResponseEntity.ok(ApiResponse.ok(null, "同步指令已发送"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.ok(null, "同步指令已发送（无插件连接）"));
+        }
+    }
+
+    @GetMapping("/plugin")
+    public Map<String, Object> getPluginSettings() {
+        return settingsService.getAllSettings();
+    }
+
+    @PutMapping("/plugin")
+    public ResponseEntity<ApiResponse<Void>> updatePluginSettings(@RequestBody Map<String, Object> settings) {
+        settingsService.updateSettings(settings);
+
+        try {
+            Map<String, Object> updateMessage = Map.of(
+                "type", "CONFIG_UPDATE",
+                "config", settings,
+                "timestamp", System.currentTimeMillis()
+            );
+            webSocketHandler.broadcastCheatData(updateMessage);
+        } catch (Exception ignored) {}
+
+        auditLogService.log(getCurrentUserId(), getCurrentUsername(), "PLUGIN_CONFIG_UPDATE", "SETTINGS",
+                null, null, "批量更新插件配置 " + settings.size() + " 项");
+
+        return ResponseEntity.ok(ApiResponse.ok(null, "插件配置已更新并同步"));
     }
 
     private String getCurrentUsername() {

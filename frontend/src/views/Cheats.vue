@@ -1,27 +1,32 @@
-﻿﻿﻿﻿<template>
-  <div class="cheats-terminal">
-    <div class="ct-header">
-      <div class="ct-prompt">
-        <span class="ct-prompt-sign">root@acs:~$</span>
-        <span class="ct-prompt-cmd">./cheats.query --sort=severity --limit=20</span>
-        <span class="ct-cursor">_</span>
+﻿﻿﻿﻿﻿﻿<template>
+  <div class="cheats-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">{{ t('nav.cheats') }}</h2>
+        <span class="entity-count">{{ totalElements }} {{ t('cheats.records') }}</span>
       </div>
-      <div class="ct-status">{{ totalElements }} detections indexed</div>
+
+      <div class="header-actions">
+        <button class="action-btn export-btn" @click="exportCSV">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          {{ t('common.csv') }}
+        </button>
+      </div>
     </div>
 
-    <div class="ct-toolbar">
-      <div class="ct-toolbar-left">
-        <div class="ct-time-chips">
-          <button :class="['ct-tchip', { active: timeRange === '1h' }]" @click="setTimeRange('1h')">1h</button>
-          <button :class="['ct-tchip', { active: timeRange === '24h' }]" @click="setTimeRange('24h')">24h</button>
-          <button :class="['ct-tchip', { active: timeRange === '7d' }]" @click="setTimeRange('7d')">7d</button>
-          <button :class="['ct-tchip', { active: timeRange === 'all' }]" @click="setTimeRange('all')">{{ t('common.all') }}</button>
+    <div class="toolbar">
+      <div class="filter-group">
+        <div class="time-chips">
+          <button :class="['filter-chip', { active: timeRange === '1h' }]" @click="setTimeRange('1h')">1h</button>
+          <button :class="['filter-chip', { active: timeRange === '24h' }]" @click="setTimeRange('24h')">24h</button>
+          <button :class="['filter-chip', { active: timeRange === '7d' }]" @click="setTimeRange('7d')">7d</button>
+          <button :class="['filter-chip', { active: timeRange === 'all' }]" @click="setTimeRange('all')">{{ t('common.all') }}</button>
         </div>
-        <select v-model="cheatTypeFilter" class="ct-select">
+        <select v-model="cheatTypeFilter" class="filter-select" @change="currentPage = 0">
           <option value="">{{ t('cheats.allTypes') }}</option>
           <option v-for="ct in cheatTypes" :key="ct" :value="ct">{{ ct }}</option>
         </select>
-        <select v-model="severityFilter" class="ct-select">
+        <select v-model="severityFilter" class="filter-select" @change="currentPage = 0">
           <option value="">{{ t('cheats.allSeverity') }}</option>
           <option value="low">{{ t('cheats.severityLow') }}</option>
           <option value="medium">{{ t('cheats.severityMedium') }}</option>
@@ -29,64 +34,71 @@
           <option value="critical">{{ t('cheats.severityCritical') }}</option>
         </select>
       </div>
-      <div class="ct-toolbar-right">
-        <div class="ct-search">
-          <span class="ct-search-prefix">$ grep</span>
-          <input v-model="searchQuery" type="text" :placeholder="t('cheats.searchPlaceholder')" />
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="14" height="14" class="search-icon"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.77l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input v-model="searchQuery" type="text" :placeholder="t('cheats.searchPlaceholder')" @keyup.enter="currentPage = 0" />
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="panel-header">
+        <div class="panel-icon">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/></svg>
         </div>
-        <button class="ct-btn" @click="exportCSV">
-          <span class="ct-btn-icon">⇩</span> CSV
-        </button>
+        <span class="panel-title">{{ t('cheats.distributionChart') }}</span>
       </div>
+      <div ref="distributionChart" class="chart-container"></div>
     </div>
 
-    <div class="ct-chart-panel">
-      <div class="ct-chart-header">
-        <span class="ct-chart-cmd">> pie.chart --type=distribution</span>
-        <span class="ct-panel-decor">╺━╸</span>
-      </div>
-      <div ref="distributionChart" class="ct-chart-body"></div>
-    </div>
-
-    <div class="ct-table-panel">
-      <div v-if="loading" class="ct-loading">
-        <div class="ct-load-bar"><div class="ct-load-bar-fill"></div></div>
-        <span class="ct-load-text">SCANNING <span class="ct-load-dots"><span>.</span><span>.</span><span>.</span></span></span>
+    <div class="table-container">
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <span>{{ t('common.loading') }}...</span>
       </div>
 
-      <div v-else-if="cheats.length === 0" class="ct-empty">
-        <div class="ct-empty-icon">⊘</div>
-        <span>NO DETECTIONS</span>
+      <div v-else-if="cheats.length === 0" class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" class="empty-icon">
+          <path fill="currentColor" d="M13 14h-2v-4h2m0 8h-2v-2h2M1 5h22l-2 18H3L1 5z"/>
+        </svg>
+        <p>{{ t('cheats.noRecords') }}</p>
       </div>
 
-      <div v-else class="ct-table-wrap">
-        <table class="ct-table">
+      <div v-else class="table-wrapper">
+        <table class="data-table">
           <thead>
             <tr>
-              <th @click="sortBy('playerName')">$ player <span class="ct-sort">↕</span></th>
-              <th @click="sortBy('cheatType')">$ cheat.type <span class="ct-sort">↕</span></th>
-              <th @click="sortBy('severity')">$ severity <span class="ct-sort">↕</span></th>
-              <th @click="sortBy('detectionTime')">$ timestamp <span class="ct-sort">↕</span></th>
-              <th>$ details</th>
-              <th>$ actions</th>
+              <th @click="sortBy('playerName')">{{ t('cheats.player') }} <span class="sort-icon">↕</span></th>
+              <th @click="sortBy('cheatType')">{{ t('cheats.cheatType') }} <span class="sort-icon">↕</span></th>
+              <th @click="sortBy('severity')">{{ t('cheats.severity') }} <span class="sort-icon">↕</span></th>
+              <th @click="sortBy('detectionTime')">{{ t('common.time') }} <span class="sort-icon">↕</span></th>
+              <th>{{ t('common.details') }}</th>
+              <th>{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="cheat in paginatedCheats" :key="cheat.id">
+            <tr v-for="cheat in paginatedCheats" :key="cheat.id" class="data-row">
               <td>
-                <div class="ct-player-cell">
-                  <img :src="`https://mc-heads.net/avatar/${cheat.player?.playerName || 'Steve'}/32`" class="ct-avatar" />
-                  <span>{{ cheat.player?.playerName || '-' }}</span>
+                <div class="player-cell">
+                  <img :src="`https://mc-heads.net/avatar/${cheat.player?.playerName || 'Steve'}/32`" class="player-avatar" />
+                  <span class="player-name">{{ cheat.player?.playerName || '-' }}</span>
                 </div>
               </td>
-              <td><span :class="['ct-tag', getCheatClass(cheat.cheatType)]">{{ cheat.cheatType }}</span></td>
-              <td><span :class="['ct-sev-badge', getSeverityClass(cheat.severity)]">{{ getSeverityText(cheat.severity) }}</span></td>
-              <td class="ct-time-cell">{{ formatTime(cheat.detectionTime) }}</td>
-              <td class="ct-detail-cell" :title="cheat.details">{{ cheat.details }}</td>
               <td>
-                <div class="ct-actions">
-                  <button class="ct-act view" @click="showCheatDetail(cheat)">VIEW</button>
-                  <button class="ct-act delete" @click="handleDelete(cheat.id)">DEL</button>
+                <span :class="['type-badge', getCheatClass(cheat.cheatType)]">{{ cheat.cheatType }}</span>
+              </td>
+              <td>
+                <span :class="['severity-badge', getSeverityClass(cheat.severity)]">{{ getSeverityText(cheat.severity) }}</span>
+              </td>
+              <td class="time-cell">{{ formatTime(cheat.detectionTime) }}</td>
+              <td class="details-cell">{{ cheat.details }}</td>
+              <td>
+                <div class="action-group">
+                  <button class="action-btn view-btn" @click="showCheatDetail(cheat)">
+                    {{ t('common.view') }}
+                  </button>
+                  <button class="action-btn delete-btn" @click="handleDelete(cheat.id)">
+                    {{ t('common.delete') }}
+                  </button>
                 </div>
               </td>
             </tr>
@@ -94,40 +106,55 @@
         </table>
       </div>
 
-      <div class="ct-pagination" v-if="totalPages > 0">
-        <span class="ct-pag-count">[{{ totalElements }}] records</span>
-        <div class="ct-pag-controls">
-          <button class="ct-pag-btn" :disabled="currentPage === 0" @click="currentPage--">◄</button>
-          <span class="ct-pag-num">{{ currentPage + 1 }} / {{ totalPages }}</span>
-          <button class="ct-pag-btn" :disabled="currentPage >= totalPages - 1" @click="currentPage++">►</button>
+      <div class="pagination" v-if="totalPages > 0">
+        <span class="pagination-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
+        <div class="pagination-controls">
+          <button class="pagination-btn" :disabled="currentPage === 0" @click="currentPage--">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12l4.58-4.59z"/></svg>
+          </button>
+          <button class="pagination-btn" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6z"/></svg>
+          </button>
         </div>
       </div>
     </div>
 
-    <transition name="ct-modal-fade">
-      <div v-if="detailVisible" class="ct-overlay" @click.self="detailVisible = false">
-        <div class="ct-modal">
-          <div class="ct-modal-top">
-            <span class="ct-modal-cmd">> cheat.detail --id={{ selectedCheat?.id }}</span>
-            <button class="ct-modal-close" @click="detailVisible = false">┼</button>
+    <transition name="modal-fade">
+      <div v-if="detailVisible" class="modal-overlay" @click.self="detailVisible = false">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <span class="modal-title">{{ t('cheats.detailTitle') }}</span>
+            <button class="modal-close" @click="detailVisible = false">×</button>
           </div>
-          <div class="ct-modal-body" v-if="selectedCheat">
-            <div class="ct-modal-player">
-              <img :src="`https://mc-heads.net/avatar/${selectedCheat.player?.playerName || 'Steve'}/64`" class="ct-modal-head" />
-              <div>
-                <div class="ct-modal-name">{{ selectedCheat.player?.playerName }}</div>
-                <div class="ct-modal-uuid">&lt;{{ selectedCheat.player?.uuid }}&gt;</div>
+          <div class="modal-body" v-if="selectedCheat">
+            <div class="detail-player">
+              <img :src="`https://mc-heads.net/avatar/${selectedCheat.player?.playerName || 'Steve'}/64`" class="detail-avatar" />
+              <div class="detail-player-info">
+                <div class="detail-player-name">{{ selectedCheat.player?.playerName }}</div>
+                <div class="detail-player-uuid">{{ selectedCheat.player?.uuid }}</div>
               </div>
             </div>
-            <div class="ct-modal-grid">
-              <div class="ct-modal-cell"><span class="ct-modal-label">$ cheat.type</span><span :class="['ct-tag', getCheatClass(selectedCheat.cheatType)]">{{ selectedCheat.cheatType }}</span></div>
-              <div class="ct-modal-cell"><span class="ct-modal-label">$ severity</span><span :class="['ct-sev-badge', getSeverityClass(selectedCheat.severity)]">{{ getSeverityText(selectedCheat.severity) }}</span></div>
-              <div class="ct-modal-cell full"><span class="ct-modal-label">$ timestamp</span><span>{{ formatTime(selectedCheat.detectionTime) }}</span></div>
-              <div class="ct-modal-cell full"><span class="ct-modal-label">$ details</span><span>{{ selectedCheat.details }}</span></div>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">{{ t('cheats.cheatType') }}</span>
+                <span :class="['detail-value', getCheatClass(selectedCheat.cheatType)]">{{ selectedCheat.cheatType }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">{{ t('cheats.severity') }}</span>
+                <span :class="['detail-value', getSeverityClass(selectedCheat.severity)]">{{ getSeverityText(selectedCheat.severity) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">{{ t('cheats.detectedAt') }}</span>
+                <span class="detail-value">{{ formatTime(selectedCheat.detectionTime) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">{{ t('common.details') }}</span>
+                <span class="detail-value">{{ selectedCheat.details }}</span>
+              </div>
             </div>
           </div>
-          <div class="ct-modal-footer">
-            <button class="ct-modal-btn sec" @click="detailVisible = false">[ESC]</button>
+          <div class="modal-footer">
+            <button class="btn secondary" @click="detailVisible = false">{{ t('common.close') }}</button>
           </div>
         </div>
       </div>
@@ -136,16 +163,18 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { cheatApi } from '../api'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { EventBus, Events } from '../utils/eventBus'
 
 export default {
   name: 'Cheats',
   setup() {
     const { t } = useI18n()
+
     const cheats = ref([])
     const loading = ref(false)
     const currentPage = ref(0)
@@ -154,576 +183,364 @@ export default {
     const searchQuery = ref('')
     const cheatTypeFilter = ref('')
     const severityFilter = ref('')
-    const timeRange = ref('all')
-    const sortField = ref('detectionTime')
+    const timeRange = ref('24h')
+    const sortByField = ref('detectionTime')
     const sortOrder = ref('desc')
     const detailVisible = ref(false)
     const selectedCheat = ref(null)
     const distributionChart = ref(null)
+    const cheatTypes = ['飞行作弊', '速度作弊', '自动点击作弊', '杀戮光环']
+
     let chartInstance = null
-    const cheatTypes = [t('cheats.flying'), t('cheats.speed'), t('cheats.autoClick'), t('cheats.killAura'), 'XRay', 'Scaffold']
+    let unsubscribeCheatData = null
+    let controller = null
+
+    const filteredCheats = computed(() => {
+      let result = [...cheats.value]
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        result = result.filter(c => 
+          (c.player?.playerName?.toLowerCase().includes(query) || '') ||
+          (c.cheatType?.toLowerCase().includes(query) || '')
+        )
+      }
+      if (cheatTypeFilter.value) {
+        result = result.filter(c => c.cheatType === cheatTypeFilter.value)
+      }
+      if (severityFilter.value) {
+        result = result.filter(c => getSeverityClass(c.severity) === severityFilter.value)
+      }
+      result.sort((a, b) => {
+        const aVal = a[sortByField.value]
+        const bVal = b[sortByField.value]
+        if (sortOrder.value === 'asc') {
+          return aVal > bVal ? 1 : -1
+        }
+        return aVal < bVal ? 1 : -1
+      })
+      return result
+    })
+
+    const paginatedCheats = computed(() => {
+      const pageSize = 20
+      const start = currentPage.value * pageSize
+      return filteredCheats.value.slice(start, start + pageSize)
+    })
+
+    const sortBy = (field) => {
+      if (sortByField.value === field) {
+        sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+      } else {
+        sortByField.value = field
+        sortOrder.value = 'desc'
+      }
+    }
+
+    const formatTime = (timestamp) => {
+      if (!timestamp) return '-'
+      const date = new Date(timestamp)
+      return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    const getCheatClass = (type) => {
+      if (!type) return 'default'
+      if (type.includes('飞行')) return 'flying'
+      if (type.includes('速度')) return 'speed'
+      if (type.includes('auto') || type.includes('click') || type.includes('自动')) return 'auto'
+      if (type.includes('kill') || type.includes('aura') || type.includes('杀戮')) return 'kill'
+      return 'default'
+    }
+
+    const getSeverityClass = (severity) => {
+      if (severity >= 4) return 'critical'
+      if (severity >= 3) return 'high'
+      if (severity >= 2) return 'medium'
+      return 'low'
+    }
+
+    const getSeverityText = (severity) => {
+      if (severity >= 4) return t('cheats.severityCritical')
+      if (severity >= 3) return t('cheats.severityHigh')
+      if (severity >= 2) return t('cheats.severityMedium')
+      return t('cheats.severityLow')
+    }
 
     const fetchCheats = async () => {
       loading.value = true
       try {
-        const data = await cheatApi.getByPage(currentPage.value, 20, sortField.value, sortOrder.value)
+        controller = new AbortController()
+        const data = await cheatApi.getByPage(currentPage.value, 20, 'detectionTime', 'desc', { signal: controller.signal })
         cheats.value = data.content || []
         totalPages.value = data.totalPages || 0
         totalElements.value = data.totalElements || 0
-        updateChart()
-      } catch (e) { ElMessage.error(t('common.error')) } finally { loading.value = false }
-    }
-
-    const filteredCheats = computed(() => {
-      let list = cheats.value
-      if (searchQuery.value) list = list.filter(c => (c.player?.playerName || '').toLowerCase().includes(searchQuery.value.toLowerCase()) || (c.cheatType || '').toLowerCase().includes(searchQuery.value.toLowerCase()))
-      if (cheatTypeFilter.value) list = list.filter(c => c.cheatType === cheatTypeFilter.value)
-      if (severityFilter.value) {
-        const map = { low: [0, 1], medium: [2], high: [3], critical: [4, 5] }
-        const range = map[severityFilter.value] || [0]
-        list = list.filter(c => range.includes(c.severity))
-      }
-      if (timeRange.value && timeRange.value !== 'all') {
-        const now = Date.now()
-        const rangeMs = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '7d': 604800000 }
-        const ms = rangeMs[timeRange.value]
-        if (ms) {
-          const cutoff = now - ms
-          list = list.filter(c => c.detectionTime && Number(c.detectionTime) >= cutoff)
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error(error)
         }
+      } finally {
+        loading.value = false
+        nextTick(() => updateChart())
       }
-      return list
-    })
-    const paginatedCheats = computed(() => filteredCheats.value)
-
-    const setTimeRange = (r) => { timeRange.value = r; fetchCheats() }
-    const sortBy = (field) => { if (sortField.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'; else { sortField.value = field; sortOrder.value = 'desc' } fetchCheats() }
-    const formatTime = (ts) => { if (!ts) return '-'; return new Date(ts).toLocaleString() }
-    const getCheatClass = (ct) => { const m = { [t('cheats.flying')]: 'ct-tag-red', [t('cheats.speed')]: 'ct-tag-orange', [t('cheats.autoClick')]: 'ct-tag-cyan', [t('cheats.killAura')]: 'ct-tag-red', 'XRay': 'ct-tag-purple', 'Scaffold': 'ct-tag-orange' }; return m[ct] || 'ct-tag-default' }
-    const getSeverityClass = (s) => { if (s >= 4) return 'critical'; if (s >= 3) return 'high'; if (s >= 2) return 'medium'; return 'low' }
-    const getSeverityText = (s) => { if (s >= 4) return t('cheats.severityCritical'); if (s >= 3) return t('cheats.severityHigh'); if (s >= 2) return t('cheats.severityMedium'); return t('cheats.severityLow') }
-
-    const showCheatDetail = (cheat) => { selectedCheat.value = cheat; detailVisible.value = true }
-    const handleDelete = async (id) => {
-      try { await ElMessageBox.confirm(t('cheats.confirmDelete'), t('common.confirm'), { type: 'warning' }); await cheatApi.delete(id); ElMessage.success(t('common.success')); fetchCheats() } catch (e) {}
-    }
-
-    const exportCSV = () => {
-      const headers = ['playerName', 'cheatType', 'severity', 'detectionTime', 'details']
-      const rows = filteredCheats.value.map(c => [c.player?.playerName || '', c.cheatType, c.severity, c.detectionTime, c.details].map(v => `"${v || ''}"`))
-      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
-      const blob = new Blob([csv], { type: 'text/csv' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cheats.csv'; a.click()
     }
 
     const updateChart = () => {
-      if (!distributionChart.value) return
-      if (!chartInstance) chartInstance = echarts.init(distributionChart.value)
-      const counts = {}
-      cheats.value.forEach(c => { counts[c.cheatType] = (counts[c.cheatType] || 0) + 1 })
-      const data = Object.entries(counts).map(([name, value]) => ({ name, value }))
-      chartInstance.setOption({
-        backgroundColor: 'transparent',
-        tooltip: { trigger: 'item', backgroundColor: '#0a0416', borderColor: 'rgba(147,51,234,0.3)', borderWidth: 2, textStyle: { color: '#c084fc', fontFamily: '"JetBrains Mono", monospace', fontSize: 11 } },
-        series: [{ type: 'pie', radius: ['38%', '68%'], center: ['50%', '50%'], itemStyle: { borderColor: '#080312', borderWidth: 2, borderRadius: 0 }, label: { color: 'rgba(180,160,220,0.7)', fontFamily: '"JetBrains Mono", monospace', fontSize: 10 }, data, color: ['#ff3d5a', '#f59e0b', '#06b6d4', '#10b981', '#a855f7', '#c084fc'] }]
+      if (!chartInstance && distributionChart.value) {
+        chartInstance = echarts.init(distributionChart.value)
+      }
+      if (!chartInstance) return
+
+      const typeCount = {}
+      cheats.value.forEach(c => {
+        typeCount[c.cheatType] = (typeCount[c.cheatType] || 0) + 1
       })
+
+      const chartData = Object.entries(typeCount).map(([name, value]) => ({ name, value }))
+
+      const option = {
+        color: ['#E74C3C', '#FF8C00', '#4A9EFF', '#9B59B6'],
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c} ({d}%)',
+          backgroundColor: 'rgba(18, 18, 24, 0.95)',
+          borderColor: 'rgba(255, 200, 0, 0.2)',
+          textStyle: { color: '#E8E8ED' }
+        },
+        series: [{
+          type: 'pie',
+          radius: ['45%', '70%'],
+          center: ['50%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: '#1a1a22',
+            borderWidth: 2
+          },
+          label: {
+            show: true,
+            color: '#9898A8',
+            fontSize: 12
+          },
+          labelLine: {
+            lineStyle: { color: '#5A5A68' }
+          },
+          data: chartData
+        }]
+      }
+
+      chartInstance.setOption(option)
     }
 
-    const handleResize = () => chartInstance?.resize()
+    const handleResize = () => {
+      chartInstance?.resize()
+    }
 
-    watch(currentPage, () => fetchCheats())
+    const setTimeRange = (range) => {
+      timeRange.value = range
+      currentPage.value = 0
+      fetchCheats()
+    }
 
-    onMounted(() => { fetchCheats(); window.addEventListener('resize', handleResize) })
-    onUnmounted(() => { window.removeEventListener('resize', handleResize); chartInstance?.dispose() })
+    const showCheatDetail = (cheat) => {
+      selectedCheat.value = cheat
+      detailVisible.value = true
+    }
 
-    return { cheats, loading, currentPage, totalPages, totalElements, searchQuery, cheatTypeFilter, severityFilter, timeRange, filteredCheats, paginatedCheats, detailVisible, selectedCheat, distributionChart, cheatTypes, setTimeRange, sortBy, formatTime, getCheatClass, getSeverityClass, getSeverityText, showCheatDetail, handleDelete, exportCSV, t }
+    const handleDelete = async (id) => {
+      try {
+        await cheatApi.delete(id)
+        ElMessage.success(t('common.success'))
+        fetchCheats()
+      } catch (error) {
+        ElMessage.error(t('common.error'))
+      }
+    }
+
+    const exportCSV = async () => {
+      try {
+        const data = await cheatApi.exportAll()
+        const blob = new Blob([data], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `cheats_${new Date().toISOString().split('T')[0]}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+      } catch (error) {
+        ElMessage.error(t('common.error'))
+      }
+    }
+
+    onMounted(() => {
+      fetchCheats()
+      window.addEventListener('resize', handleResize)
+      
+      unsubscribeCheatData = EventBus.on(Events.WS_CHEAT_DATA, (data) => {
+        if (data.player && data.cheatType) {
+          cheats.value.unshift({
+            id: Date.now(),
+            player: { playerName: data.playerName, uuid: data.playerUuid },
+            cheatType: data.cheatType,
+            severity: data.severity || 3,
+            detectionTime: new Date().getTime(),
+            details: data.details || '检测到作弊行为'
+          })
+          totalElements.value++
+          nextTick(() => updateChart())
+        }
+      })
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('resize', handleResize)
+      chartInstance?.dispose()
+      unsubscribeCheatData?.()
+      
+      if (controller) {
+        controller.abort()
+      }
+    })
+
+    watch([searchQuery, cheatTypeFilter, severityFilter], () => {
+      currentPage.value = 0
+    })
+
+    return {
+      cheats,
+      loading,
+      currentPage,
+      totalPages,
+      totalElements,
+      searchQuery,
+      cheatTypeFilter,
+      severityFilter,
+      timeRange,
+      detailVisible,
+      selectedCheat,
+      distributionChart,
+      cheatTypes,
+      filteredCheats,
+      paginatedCheats,
+      setTimeRange,
+      sortBy,
+      formatTime,
+      getCheatClass,
+      getSeverityClass,
+      getSeverityText,
+      showCheatDetail,
+      handleDelete,
+      exportCSV,
+      t
+    }
   }
 }
 </script>
 
 <style scoped>
-.cheats-terminal {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.ct-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.ct-prompt {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ct-prompt-sign { color: #06b6d4; font-weight: 700; }
-.ct-prompt-cmd { color: #a855f7; }
-
-.ct-cursor {
-  color: #c084fc;
-  animation: ctBlink 1s step-end infinite;
-}
-
-@keyframes ctBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.ct-status {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
-  letter-spacing: 1px;
-}
-
-/* TOOLBAR */
-.ct-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.ct-toolbar-left, .ct-toolbar-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.ct-time-chips {
-  display: flex;
-  gap: 2px;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
-  padding: 2px;
-}
-
-.ct-tchip {
-  padding: 5px 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.ct-tchip:hover { color: var(--text-primary); background: rgba(147,51,234,0.06); }
-.ct-tchip.active { background: rgba(147,51,234,0.14); border-color: rgba(168,85,247,0.4); color: #c084fc; }
-
-.ct-select {
-  padding: 7px 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-primary);
-}
-
-.ct-search {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
-  width: 220px;
-  transition: all 0.2s ease;
-}
-
-.ct-search:focus-within { border-color: rgba(168,85,247,0.4); }
-
-.ct-search-prefix {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: #06b6d4;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.ct-search input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-primary);
-}
-
-.ct-search input::placeholder { color: var(--text-muted); }
-
-.ct-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 7px 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ct-btn:hover { border-color: rgba(168,85,247,0.35); color: #c084fc; }
-.ct-btn-icon { font-size: 12px; }
-
-/* CHART */
-.ct-chart-panel {
-  background: rgba(8,3,18,0.85);
-  border: 2px solid rgba(147,51,234,0.12);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.ct-chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 2px solid rgba(147,51,234,0.08);
-}
-
-.ct-chart-cmd {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: #06b6d4;
-}
-
-.ct-panel-decor {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: rgba(168,85,247,0.3);
-}
-
-.ct-chart-body { height: 220px; padding: 8px; }
-
-/* TABLE */
-.ct-table-panel {
-  background: rgba(8,3,18,0.85);
-  border: 2px solid rgba(147,51,234,0.12);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.ct-loading, .ct-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 2px;
-  gap: 14px;
-}
-
-.ct-empty-icon { font-size: 48px; opacity: 0.15; }
-
-.ct-load-bar {
-  width: 160px;
-  height: 2px;
-  background: rgba(147,51,234,0.1);
-  overflow: hidden;
-}
-
-.ct-load-bar-fill {
-  height: 100%;
-  width: 40%;
-  background: #a855f7;
-  animation: ctLoadScan 1.5s ease-in-out infinite;
-}
-
-@keyframes ctLoadScan {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
-}
-
-.ct-load-dots span {
-  animation: ctDotFade 1.4s infinite;
-  opacity: 0;
-}
-
-.ct-load-dots span:nth-child(1) { animation-delay: 0s; }
-.ct-load-dots span:nth-child(2) { animation-delay: 0.2s; }
-.ct-load-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes ctDotFade {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
-}
-
-.ct-table-wrap { overflow-x: auto; }
-
-.ct-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.ct-table thead th {
-  padding: 10px 14px;
-  text-align: left;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  color: #06b6d4;
-  background: rgba(147,51,234,0.04);
-  border-bottom: 2px solid rgba(147,51,234,0.1);
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.ct-table thead th:hover { color: #06b6d4; }
-
-.ct-table tbody td {
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(147,51,234,0.05);
-  font-size: 12px;
-  color: var(--text-primary);
-}
-
-.ct-table tbody tr:hover { background: rgba(147,51,234,0.03); }
-
-.ct-time-cell { font-family: var(--font-mono); font-size: 10px !important; color: var(--text-muted) !important; }
-.ct-detail-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.ct-player-cell { display: flex; align-items: center; gap: 10px; }
-
-.ct-avatar {
-  width: 28px;
-  height: 28px;
-  image-rendering: pixelated;
-  border: 1px solid rgba(147,51,234,0.15);
-}
-
-.ct-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border: 1px solid;
-}
-
-.ct-tag.ct-tag-red { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: rgba(255,61,90,0.06); }
-.ct-tag.ct-tag-orange { border-color: rgba(245,158,11,0.25); color: #f59e0b; background: rgba(245,158,11,0.06); }
-.ct-tag.ct-tag-cyan { border-color: rgba(6,182,212,0.2); color: #06b6d4; background: rgba(6,182,212,0.05); }
-.ct-tag.ct-tag-purple { border-color: rgba(168,85,247,0.25); color: #a855f7; background: rgba(168,85,247,0.06); }
-.ct-tag.ct-tag-default { border-color: rgba(147,51,234,0.2); color: #c084fc; background: rgba(147,51,234,0.05); }
-
-.ct-sev-badge {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border: 1px solid;
-}
-
-.ct-sev-badge.critical { border-color: rgba(168,85,247,0.25); color: #a855f7; background: rgba(168,85,247,0.06); }
-.ct-sev-badge.high { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: rgba(255,61,90,0.06); }
-.ct-sev-badge.medium { border-color: rgba(245,158,11,0.25); color: #f59e0b; background: rgba(245,158,11,0.06); }
-.ct-sev-badge.low { border-color: rgba(16,185,129,0.2); color: #10b981; background: rgba(16,185,129,0.05); }
-
-.ct-sort { font-size: 10px; margin-left: 4px; opacity: 0.4; }
-
-.ct-actions { display: flex; gap: 4px; }
-
-.ct-act {
-  padding: 4px 10px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  border: 1px solid;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ct-act.view { border-color: rgba(6,182,212,0.25); color: #06b6d4; background: transparent; }
-.ct-act.view:hover { background: rgba(6,182,212,0.1); }
-.ct-act.delete { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: transparent; }
-.ct-act.delete:hover { background: rgba(255,61,90,0.1); }
-
-/* PAGINATION */
-.ct-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-top: 2px solid rgba(147,51,234,0.06);
-}
-
-.ct-pag-count {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.ct-pag-controls { display: flex; align-items: center; gap: 10px; }
-
-.ct-pag-btn {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ct-pag-btn:hover:not(:disabled) { border-color: rgba(168,85,247,0.4); color: #c084fc; }
-.ct-pag-btn:disabled { opacity: 0.2; cursor: not-allowed; }
-
-.ct-pag-num {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-/* OVERLAY */
-.ct-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(4,0,10,0.88);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.ct-modal {
-  background: rgba(8,3,18,0.98);
-  border: 2px solid rgba(147,51,234,0.25);
-  border-radius: 2px;
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 50px rgba(0,0,0,0.7), 0 0 40px rgba(147,51,234,0.12);
-}
-
-@keyframes ctModalIn {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.ct-modal-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 18px;
-  border-bottom: 2px solid rgba(147,51,234,0.1);
-}
-
-.ct-modal-cmd {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: #06b6d4;
-}
-
-.ct-modal-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,61,90,0.08);
-  border: 2px solid rgba(255,61,90,0.15);
-  color: var(--text-muted);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ct-modal-close:hover { background: rgba(255,61,90,0.2); color: #ff3d5a; }
-
-.ct-modal-body { padding: 18px; }
-
-.ct-modal-player {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 2px solid rgba(147,51,234,0.06);
-}
-
-.ct-modal-head {
-  width: 56px;
-  height: 56px;
-  image-rendering: pixelated;
-  border: 2px solid rgba(147,51,234,0.2);
-}
-
-.ct-modal-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
-.ct-modal-uuid { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-top: 2px; }
-
-.ct-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-.ct-modal-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: rgba(147,51,234,0.025);
-  border: 1px solid rgba(147,51,234,0.05);
-}
-
-.ct-modal-cell.full { grid-column: 1 / -1; }
-
-.ct-modal-label {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  color: #06b6d4;
-  opacity: 0.55;
-}
-
-.ct-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 18px;
-  border-top: 2px solid rgba(147,51,234,0.06);
-}
-
-.ct-modal-btn.sec {
-  padding: 8px 18px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(147,51,234,0.04);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ct-modal-btn.sec:hover { background: rgba(147,51,234,0.1); color: var(--text-primary); }
-
-.ct-modal-fade-enter-active { animation: ctModalIn 0.22s ease-out; }
-.ct-modal-fade-leave-active { animation: ctModalIn 0.16s ease-in reverse; }
-
-@media (max-width: 767px) {
-  .ct-search { width: 100%; }
-  .ct-modal-grid { grid-template-columns: 1fr; }
-}
+.cheats-container { padding: 20px; }
+
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.page-title { font-family: var(--font-sans); font-size: 20px; font-weight: 700; color: var(--accent-gold); margin: 0; }
+.entity-count { font-size: 13px; color: var(--text-muted); }
+
+.header-actions { display: flex; gap: 10px; }
+.action-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font-size: 13px; transition: all 0.2s ease; }
+.action-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); }
+.filter-group { display: flex; align-items: center; gap: 12px; }
+.time-chips { display: flex; gap: 6px; }
+.filter-chip { padding: 6px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 20px; color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
+.filter-chip:hover { border-color: var(--accent-gold); }
+.filter-chip.active { background: var(--accent-gold-dim); border-color: var(--accent-gold); color: var(--accent-gold); }
+.filter-select { padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; cursor: pointer; }
+
+.search-box { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+.search-icon { color: var(--text-muted); }
+.search-box input { background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 12px; width: 200px; }
+.search-box input::placeholder { color: var(--text-muted); }
+
+.chart-panel { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px; }
+.panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.panel-icon { color: var(--accent-gold); }
+.panel-title { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.chart-container { height: 220px; }
+
+.table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; }
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 12px; }
+.spinner { width: 32px; height: 32px; border: 2px solid var(--border-color); border-top-color: var(--accent-gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 12px; }
+.empty-icon { color: var(--text-muted); }
+.empty-state p { color: var(--text-muted); font-size: 14px; }
+
+.table-wrapper { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { text-align: left; padding: 12px 16px; color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border-color); cursor: pointer; }
+.sort-icon { font-size: 10px; margin-left: 4px; opacity: 0.5; }
+.data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+.data-row:hover td { background: var(--bg-hover); }
+
+.player-cell { display: flex; align-items: center; gap: 10px; }
+.player-avatar { width: 32px; height: 32px; border-radius: 50%; }
+.player-name { font-size: 13px; color: var(--text-primary); }
+
+.type-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.type-badge.flying { background: rgba(231, 76, 60, 0.15); color: #E74C3C; }
+.type-badge.speed { background: rgba(255, 140, 0, 0.15); color: #FF8C00; }
+.type-badge.auto { background: rgba(74, 158, 255, 0.15); color: #4A9EFF; }
+.type-badge.kill { background: rgba(155, 89, 182, 0.15); color: #9B59B6; }
+.type-badge.default { background: var(--bg-secondary); color: var(--text-secondary); }
+
+.severity-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.severity-badge.critical { background: rgba(231, 76, 60, 0.15); color: #E74C3C; }
+.severity-badge.high { background: rgba(255, 140, 0, 0.15); color: #FF8C00; }
+.severity-badge.medium { background: rgba(241, 196, 15, 0.15); color: #F1C40F; }
+.severity-badge.low { background: rgba(46, 204, 113, 0.15); color: #2ECC71; }
+
+.time-cell { color: var(--text-muted); font-size: 12px; }
+.details-cell { color: var(--text-secondary); font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.action-group { display: flex; gap: 6px; }
+.action-btn { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
+.action-btn.view-btn { background: var(--bg-secondary); color: var(--text-secondary); }
+.action-btn.view-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.action-btn.delete-btn { background: rgba(231, 76, 60, 0.1); border-color: rgba(231, 76, 60, 0.3); color: #E74C3C; }
+.action-btn.delete-btn:hover { background: #E74C3C; color: #fff; border-color: #E74C3C; }
+
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 16px; border-top: 1px solid var(--border-color); }
+.pagination-info { font-size: 13px; color: var(--text-muted); }
+.pagination-controls { display: flex; gap: 4px; }
+.pagination-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; transition: all 0.2s ease; }
+.pagination-btn:hover:not(:disabled) { border-color: var(--accent-gold); color: var(--accent-gold); }
+.pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+.modal-dialog { background: var(--bg-card-solid); border: 1px solid var(--border-light); border-radius: var(--radius-lg); width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background: var(--bg-tertiary); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.modal-title { font-family: var(--font-sans); font-size: 15px; font-weight: 700; color: var(--accent-gold); }
+.modal-close { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: var(--radius-sm); color: #E74C3C; cursor: pointer; font-size: 20px; transition: all 0.2s ease; }
+.modal-close:hover { background: #E74C3C; color: #fff; }
+.modal-body { padding: 20px; }
+
+.detail-player { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+.detail-avatar { width: 64px; height: 64px; border-radius: 50%; }
+.detail-player-info { display: flex; flex-direction: column; gap: 4px; }
+.detail-player-name { font-family: var(--font-sans); font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.detail-player-uuid { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.detail-item { display: flex; flex-direction: column; gap: 4px; }
+.detail-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-value { font-size: 13px; color: var(--text-primary); }
+
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--border-color); background: var(--bg-tertiary); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.btn { padding: 10px 20px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.btn.secondary { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary); }
+.btn.secondary:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 </style>

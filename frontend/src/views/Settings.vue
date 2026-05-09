@@ -1,58 +1,74 @@
 <template>
-  <div class="st-terminal">
-    <div class="st-header">
-      <div class="st-prompt">
-        <span class="st-prompt-sign">root@acs:~$</span>
-        <span class="st-prompt-cmd">./config.edit --all</span>
-        <span class="st-cursor">_</span>
+  <div class="settings-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">{{ t('nav.settings') }}</h2>
+        <span class="page-desc">{{ t('settings.subtitle') }}</span>
+      </div>
+
+      <div class="header-actions">
+        <button class="action-btn reset-btn" @click="resetSettings">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+          {{ t('settings.reset') }}
+        </button>
+        <button class="action-btn save-btn" @click="saveSettings">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM9 8h2v8H9zm4 2h2v6h-2z"/></svg>
+          {{ t('settings.save') }}
+        </button>
       </div>
     </div>
 
-    <div v-for="group in settingGroups" :key="group.key" class="st-group">
-      <div class="st-group-header" @click="toggleGroup(group.key)">
-        <div class="st-group-header-left">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" :d="group.icon"/></svg>
-          <span class="st-group-title">{{ group.title }}</span>
-        </div>
-        <svg :class="['st-toggle-icon', { collapsed: collapsedGroups.has(group.key) }]" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
-      </div>
-      <div :class="['st-group-body', { collapsed: collapsedGroups.has(group.key) }]">
-        <div v-for="item in group.items" :key="item.key" class="st-item">
-          <div class="st-item-info">
-            <div class="st-item-label">{{ item.label }}</div>
-            <div class="st-item-desc">{{ item.desc }}</div>
+    <div class="settings-grid">
+      <div v-for="group in settingGroups" :key="group.key" class="setting-card">
+        <div class="card-header" @click="toggleGroup(group.key)">
+          <div class="header-left">
+            <div class="card-icon" :class="group.key">
+              <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" :d="group.icon"/></svg>
+            </div>
+            <div class="header-info">
+              <span class="card-title">{{ t(`settings.${group.key}Title`) }}</span>
+              <span class="card-desc">{{ t(`settings.${group.key}Desc`) }}</span>
+            </div>
           </div>
-          <div class="st-item-control">
-            <div v-if="item.type === 'toggle'" :class="['st-toggle', { active: settings[item.key] }]" @click="settings[item.key] = !settings[item.key]">
-              <div class="st-toggle-knob"></div>
+          <svg :class="['toggle-icon', { collapsed: collapsedGroups.has(group.key) }]" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+        </div>
+        <div :class="['card-body', { collapsed: collapsedGroups.has(group.key) }]">
+          <div v-for="item in group.items" :key="item.key" class="setting-item">
+            <div class="item-info">
+              <div class="item-label">{{ t(`settings.${item.key}`) }}</div>
+              <div class="item-desc">{{ t(`settings.${item.key}Desc`) }}</div>
             </div>
-            <div v-else-if="item.type === 'number'" class="st-number">
-              <button class="st-num-btn" @click="settings[item.key] = Math.max(item.min || 0, (settings[item.key] || 0) - (item.step || 1))">−</button>
-              <input type="number" v-model.number="settings[item.key]" :min="item.min" :max="item.max" class="st-num-input" />
-              <span v-if="item.unit" class="st-num-unit">{{ item.unit }}</span>
-              <button class="st-num-btn" @click="settings[item.key] = Math.min(item.max || 999, (settings[item.key] || 0) + (item.step || 1))">+</button>
+            <div class="item-control">
+              <div v-if="item.type === 'toggle'" :class="['toggle-switch', { active: settings[item.key] }]" @click="toggleSetting(item.key)">
+                <div class="toggle-knob"></div>
+              </div>
+              <div v-else-if="item.type === 'number'" class="number-control">
+                <button class="num-btn" @click="adjustNumber(item, -1)" :disabled="(settings[item.key] || 0) <= (item.min || 0)">−</button>
+                <input type="number" v-model.number="settings[item.key]" :min="item.min" :max="item.max" class="num-input" />
+                <span v-if="item.unit" class="num-unit">{{ item.unit }}</span>
+                <button class="num-btn" @click="adjustNumber(item, 1)" :disabled="(settings[item.key] || 0) >= (item.max || 999)">+</button>
+              </div>
+              <select v-else-if="item.type === 'select'" v-model="settings[item.key]" class="select-control">
+                <option v-for="opt in item.options" :key="opt.value" :value="opt.value">{{ t(`settings.${opt.label}`) || opt.label }}</option>
+              </select>
+              <input v-else-if="item.type === 'text'" v-model="settings[item.key]" class="text-input" :placeholder="item.placeholder" />
+              <input v-else-if="item.type === 'password'" v-model="settings[item.key]" class="text-input" type="password" :placeholder="item.placeholder" />
             </div>
-            <select v-else-if="item.type === 'select'" v-model="settings[item.key]" class="st-select">
-              <option v-for="opt in item.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-            <input v-else-if="item.type === 'text'" v-model="settings[item.key]" class="st-input" :placeholder="item.placeholder" />
           </div>
         </div>
       </div>
     </div>
 
-    <div class="st-actions">
-      <button class="st-act-btn save" @click="saveSettings">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>
-        {{ t('settings.save') }}
-      </button>
-      <button class="st-act-btn sync" @click="syncToPlugin">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM9 8h2v8H9zm4 2h2v6h-2z"/></svg>
+    <div class="sync-panel">
+      <div class="panel-icon">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM9 8h2v8H9zm4 2h2v6h-2z"/></svg>
+      </div>
+      <div class="panel-content">
+        <span class="panel-title">{{ t('settings.syncTitle') }}</span>
+        <span class="panel-desc">{{ t('settings.syncDesc') }}</span>
+      </div>
+      <button class="sync-btn" @click="syncToPlugin">
         {{ t('settings.syncToPlugin') }}
-      </button>
-      <button class="st-act-btn reset" @click="resetSettings">
-        <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        {{ t('settings.reset') }}
       </button>
     </div>
   </div>
@@ -68,202 +84,262 @@ export default {
   name: 'Settings',
   setup() {
     const { t } = useI18n()
-    const collapsedGroups = ref(new Set())
-    const settings = reactive({
-      flyDetectionEnabled: true, flyThreshold: 5, flyAutoKick: true,
-      speedDetectionEnabled: true, speedThreshold: 3, speedAutoKick: true,
-      killAuraDetectionEnabled: true, killAuraThreshold: 5, killAuraAutoKick: false,
-      autoClickDetectionEnabled: true, autoClickThreshold: 15, autoClickAutoKick: false,
-      autoBanEnabled: true, autoBanThreshold: 10, autoBanType: 'PERMANENT',
-      autoBanDuration: 7, autoKickEnabled: true, autoKickThreshold: 5,
-      warningMessage: '§c[AntiCheat] 检测到异常行为，请停止作弊！',
-      kickMessage: '§c[AntiCheat] 你因作弊行为被踢出服务器！',
-      banMessage: '§c[AntiCheat] 你因多次作弊被永久封禁！',
-      alertSound: true, alertOnlyHighSeverity: false
-    })
+
+    const settings = reactive({})
+    const originalSettings = reactive({})
+    const collapsedGroups = ref(new Set(['advanced']))
 
     const settingGroups = [
-      { key: 'fly', title: t('settings.flyDetection'), icon: 'M12 2L2 22h20L12 2m0 4l7.5 14h-15L12 6z', items: [
-        { key: 'flyDetectionEnabled', label: t('settings.enableFlyDetection'), desc: t('settings.enableFlyDetectionDesc'), type: 'toggle' },
-        { key: 'flyThreshold', label: t('settings.triggerThreshold'), desc: t('settings.triggerThresholdDesc'), type: 'number', min: 1, max: 20, step: 1 },
-        { key: 'flyAutoKick', label: t('settings.autoKick'), desc: t('settings.autoKickDesc'), type: 'toggle' }
-      ]},
-      { key: 'speed', title: t('settings.speedDetection'), icon: 'M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 1.45-.39 2.81-1.07 3.98l1.75 1.02C21.53 15.49 22 13.81 22 12c0-5.18-3.95-9.45-9-9.95zM12 20c-4.42 0-8-3.58-8-8 0-3.44 2.19-6.37 5.24-7.49L8.19 2.77C3.79 4.25 1 8.76 1 12c0 6.07 4.93 11 11 11', items: [
-        { key: 'speedDetectionEnabled', label: t('settings.enableSpeedDetection'), desc: t('settings.enableSpeedDetectionDesc'), type: 'toggle' },
-        { key: 'speedThreshold', label: t('settings.triggerThreshold'), desc: t('settings.triggerThresholdDesc'), type: 'number', min: 1, max: 20, step: 1 },
-        { key: 'speedAutoKick', label: t('settings.autoKick'), desc: t('settings.autoKickDesc'), type: 'toggle' }
-      ]},
-      { key: 'killaura', title: t('settings.killAuraDetection'), icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z', items: [
-        { key: 'killAuraDetectionEnabled', label: t('settings.enableKillAuraDetection'), desc: t('settings.enableKillAuraDetectionDesc'), type: 'toggle' },
-        { key: 'killAuraThreshold', label: t('settings.triggerThreshold'), desc: t('settings.triggerThresholdDesc'), type: 'number', min: 1, max: 20, step: 1 },
-        { key: 'killAuraAutoKick', label: t('settings.autoKick'), desc: t('settings.autoKickDesc'), type: 'toggle' }
-      ]},
-      { key: 'autoclick', title: t('settings.autoClickDetection'), icon: 'M13 14h-2v-4h2m0 8h-2v-2h2M1 5h22l-2 18H3L1 5z', items: [
-        { key: 'autoClickDetectionEnabled', label: t('settings.enableAutoClickDetection'), desc: t('settings.enableAutoClickDetectionDesc'), type: 'toggle' },
-        { key: 'autoClickThreshold', label: t('settings.cpsThreshold'), desc: t('settings.cpsThresholdDesc'), type: 'number', min: 5, max: 30, step: 1, unit: 'CPS' },
-        { key: 'autoClickAutoKick', label: t('settings.autoKick'), desc: t('settings.autoKickDesc'), type: 'toggle' }
-      ]},
-      { key: 'punishment', title: t('settings.punishmentSettings'), icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z', items: [
-        { key: 'autoBanEnabled', label: t('settings.enableAutoBan'), desc: t('settings.enableAutoBanDesc'), type: 'toggle' },
-        { key: 'autoBanThreshold', label: t('settings.autoBanThreshold'), desc: t('settings.autoBanThresholdDesc'), type: 'number', min: 5, max: 50, step: 1 },
-        { key: 'autoBanType', label: t('settings.banType'), desc: t('settings.banTypeDesc'), type: 'select', options: [{ value: 'PERMANENT', label: t('settings.permanentBan') }, { value: 'TEMPORARY', label: t('settings.temporaryBan') }] },
-        { key: 'autoBanDuration', label: t('settings.tempBanDuration'), desc: t('settings.tempBanDurationDesc'), type: 'number', min: 1, max: 365, step: 1, unit: t('settings.days') },
-        { key: 'autoKickEnabled', label: t('settings.enableAutoKick'), desc: t('settings.enableAutoKickDesc'), type: 'toggle' },
-        { key: 'autoKickThreshold', label: t('settings.autoKickThreshold'), desc: t('settings.autoKickThresholdDesc'), type: 'number', min: 1, max: 20, step: 1 }
-      ]},
-      { key: 'messages', title: t('settings.messageSettings'), icon: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z', items: [
-        { key: 'warningMessage', label: t('settings.warningMessage'), desc: t('settings.warningMessageDesc'), type: 'text', placeholder: '§c[AntiCheat] Warning' },
-        { key: 'kickMessage', label: t('settings.kickMessage'), desc: t('settings.kickMessageDesc'), type: 'text', placeholder: '§c[AntiCheat] Kick' },
-        { key: 'banMessage', label: t('settings.banMessage'), desc: t('settings.banMessageDesc'), type: 'text', placeholder: '§c[AntiCheat] Ban' }
-      ]},
-      { key: 'notifications', title: t('settings.notificationSettings'), icon: 'M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z', items: [
-        { key: 'alertSound', label: t('settings.alertSound'), desc: t('settings.alertSoundDesc'), type: 'toggle' },
-        { key: 'alertOnlyHighSeverity', label: t('settings.onlyHighSeverity'), desc: t('settings.onlyHighSeverityDesc'), type: 'toggle' }
-      ]}
+      {
+        key: 'detection',
+        icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z',
+        items: [
+          { key: 'enableFlyingDetection', type: 'toggle', default: true },
+          { key: 'enableSpeedDetection', type: 'toggle', default: true },
+          { key: 'enableKillAuraDetection', type: 'toggle', default: true },
+          { key: 'enableAutoClickDetection', type: 'toggle', default: true },
+          { key: 'detectionThreshold', type: 'number', default: 3, min: 1, max: 20 },
+          { key: 'alertCooldown', type: 'number', default: 60, min: 10, max: 300, unit: 's' }
+        ]
+      },
+      {
+        key: 'punishment',
+        icon: 'M12 2L2 22h20L12 2m0 4l7.5 14h-15L12 6z',
+        items: [
+          { key: 'autoBanEnabled', type: 'toggle', default: false },
+          { key: 'banThreshold', type: 'number', default: 10, min: 3, max: 50 },
+          { key: 'defaultBanDuration', type: 'select', default: '24h', options: [
+            { value: '1h', label: '1小时' },
+            { value: '6h', label: '6小时' },
+            { value: '24h', label: '24小时' },
+            { value: '7d', label: '7天' },
+            { value: '30d', label: '30天' },
+            { value: 'permanent', label: '永久' }
+          ]},
+          { key: 'enableTempBan', type: 'toggle', default: true }
+        ]
+      },
+      {
+        key: 'notification',
+        icon: 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0',
+        items: [
+          { key: 'enableSoundAlert', type: 'toggle', default: false },
+          { key: 'enableDesktopAlert', type: 'toggle', default: true },
+          { key: 'highRiskAlert', type: 'toggle', default: true },
+          { key: 'reportAlert', type: 'toggle', default: true }
+        ]
+      },
+      {
+        key: 'system',
+        icon: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z',
+        items: [
+          { key: 'autoRefresh', type: 'toggle', default: true },
+          { key: 'refreshInterval', type: 'number', default: 30, min: 5, max: 300, unit: 's' },
+          { key: 'maxLogEntries', type: 'number', default: 1000, min: 100, max: 5000 },
+          { key: 'language', type: 'select', default: 'zh', options: [
+            { value: 'zh', label: '中文' },
+            { value: 'en', label: 'English' }
+          ]}
+        ]
+      },
+      {
+        key: 'advanced',
+        icon: 'M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.39-1.08-.7-1.66-.94l-.38-2.65c-.03-.24-.24-.42-.48-.42h-4c-.24 0-.45.18-.48.42l-.38 2.65c-.58.24-1.14.55-1.66.94l-2.49-1c-.22-.08-.49 0-.61.22l2 3.46c.12.22.07.49.12.64l2.11 1.65c-.04.32-.07.64-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.39 1.08.7 1.66.94l.38 2.65c.03.24.24.42.48.42h4c.24 0 .45-.18.48-.42l.38-2.65c.58-.24 1.14-.55 1.66-.94l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z',
+        items: [
+          { key: 'enableDebug', type: 'toggle', default: false },
+          { key: 'logLevel', type: 'select', default: 'info', options: [
+            { value: 'debug', label: 'Debug' },
+            { value: 'info', label: 'Info' },
+            { value: 'warn', label: 'Warn' },
+            { value: 'error', label: 'Error' }
+          ]},
+          { key: 'apiTimeout', type: 'number', default: 30, min: 5, max: 120, unit: 's' },
+          { key: 'maxConnections', type: 'number', default: 100, min: 10, max: 500 }
+        ]
+      }
     ]
 
-    const toggleGroup = (key) => { const s = new Set(collapsedGroups.value); if (s.has(key)) s.delete(key); else s.add(key); collapsedGroups.value = s }
+    const toggleGroup = (key) => {
+      if (collapsedGroups.value.has(key)) {
+        collapsedGroups.value.delete(key)
+      } else {
+        collapsedGroups.value.add(key)
+      }
+    }
+
+    const toggleSetting = (key) => {
+      settings[key] = !settings[key]
+    }
+
+    const adjustNumber = (item, delta) => {
+      const current = settings[item.key] || item.default || 0
+      const step = item.step || 1
+      const newValue = current + delta * step
+      if (newValue >= (item.min || 0) && newValue <= (item.max || 999)) {
+        settings[item.key] = newValue
+      }
+    }
 
     const loadSettings = async () => {
       try {
         const data = await settingsApi.getAll()
-        Object.keys(data).forEach(key => {
-          if (settings.hasOwnProperty(key)) {
-            const v = data[key]
-            settings[key] = v
-          }
+        settingGroups.forEach(group => {
+          group.items.forEach(item => {
+            settings[item.key] = data[item.key] ?? item.default
+            originalSettings[item.key] = settings[item.key]
+          })
         })
-      } catch (e) { console.error(e) }
+      } catch (error) {
+        settingGroups.forEach(group => {
+          group.items.forEach(item => {
+            settings[item.key] = item.default
+            originalSettings[item.key] = settings[item.key]
+          })
+        })
+      }
     }
 
     const saveSettings = async () => {
       try {
-        await settingsApi.batchSave({ ...settings })
-        ElMessage.success(t('settings.saveSuccess'))
-      } catch (e) { ElMessage.error(t('common.error')) }
-    }
-
-    const syncToPlugin = async () => {
-      try { await saveSettings(); ElMessage.success(t('settings.syncSuccess')) } catch (e) { ElMessage.error(t('common.error')) }
+        await settingsApi.batchSave(settings)
+        Object.assign(originalSettings, settings)
+        ElMessage.success(t('common.success'))
+      } catch (error) {
+        ElMessage.error(t('common.error'))
+      }
     }
 
     const resetSettings = () => {
-      Object.keys(settings).forEach(k => {
-        const defaults = { flyDetectionEnabled: true, flyThreshold: 5, flyAutoKick: true, speedDetectionEnabled: true, speedThreshold: 3, speedAutoKick: true, killAuraDetectionEnabled: true, killAuraThreshold: 5, killAuraAutoKick: false, autoClickDetectionEnabled: true, autoClickThreshold: 15, autoClickAutoKick: false, autoBanEnabled: true, autoBanThreshold: 10, autoBanType: 'PERMANENT', autoBanDuration: 7, autoKickEnabled: true, autoKickThreshold: 5, warningMessage: '§c[AntiCheat] 检测到异常行为，请停止作弊！', kickMessage: '§c[AntiCheat] 你因作弊行为被踢出服务器！', banMessage: '§c[AntiCheat] 你因多次作弊被永久封禁！', alertSound: true, alertOnlyHighSeverity: false }
-        settings[k] = defaults[k]
+      settingGroups.forEach(group => {
+        group.items.forEach(item => {
+          settings[item.key] = item.default
+        })
       })
-      ElMessage.success(t('settings.resetSuccess'))
+      ElMessage.info(t('settings.resetSuccess'))
     }
 
-    onMounted(() => loadSettings())
+    const syncToPlugin = async () => {
+      try {
+        const pluginSettings = convertToPluginFormat(settings)
+        await settingsApi.savePluginSettings(pluginSettings)
+        ElMessage.success(t('settings.syncSuccess'))
+      } catch (error) {
+        ElMessage.error(t('common.error'))
+      }
+    }
 
-    return { settings, settingGroups, collapsedGroups, toggleGroup, saveSettings, syncToPlugin, resetSettings, t }
+    const convertToPluginFormat = (frontendSettings) => {
+      const mapping = {
+        'enableFlyingDetection': 'detect.fly',
+        'enableSpeedDetection': 'detect.speed',
+        'enableAutoClickDetection': 'detect.autoclick',
+        'enableKillAuraDetection': 'detect.killaura',
+        'detectionThreshold': 'threshold.violation',
+        'autoClickThreshold': 'threshold.autoclick',
+        'speedThreshold': 'threshold.speed',
+        'banThreshold': 'cheat.fly.perm_ban_threshold',
+        'autoKickThreshold': 'cheat.fly.kick_threshold'
+      }
+      
+      const result = {}
+      Object.keys(mapping).forEach(frontendKey => {
+        if (frontendSettings[frontendKey] !== undefined) {
+          result[mapping[frontendKey]] = frontendSettings[frontendKey]
+        }
+      })
+      
+      return result
+    }
+
+    onMounted(() => {
+      loadSettings()
+    })
+
+    return {
+      settings,
+      collapsedGroups,
+      settingGroups,
+      toggleGroup,
+      toggleSetting,
+      adjustNumber,
+      saveSettings,
+      resetSettings,
+      syncToPlugin,
+      t
+    }
   }
 }
 </script>
 
 <style scoped>
-.st-terminal { display: flex; flex-direction: column; gap: 16px; max-width: 900px; }
+.settings-container { padding: 20px; }
 
-.st-header { margin-bottom: 4px; }
-.st-prompt { font-family: var(--font-mono); font-size: 13px; }
-.st-prompt-sign { color: #06b6d4; }
-.st-prompt-cmd { color: #c084fc; margin-left: 8px; }
-.st-cursor { color: #a855f7; animation: stBlink 1s step-end infinite; }
-@keyframes stBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.header-left { display: flex; flex-direction: column; gap: 4px; }
+.page-title { font-family: var(--font-sans); font-size: 20px; font-weight: 700; color: var(--accent-gold); margin: 0; }
+.page-desc { font-size: 13px; color: var(--text-muted); }
 
-.st-group {
-  background: rgba(6,2,16,0.7);
-  border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
-  overflow: hidden;
-}
-.st-group-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px 18px; cursor: pointer; user-select: none;
-  transition: background 0.2s ease;
-}
-.st-group-header:hover { background: rgba(147,51,234,0.06); }
-.st-group-header-left { display: flex; align-items: center; gap: 10px; }
-.st-group-header-left svg { color: #a855f7; }
-.st-group-title { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #c084fc; text-transform: uppercase; letter-spacing: 1px; }
-.st-toggle-icon { color: var(--text-muted); transition: transform 0.3s ease; }
-.st-toggle-icon.collapsed { transform: rotate(-90deg); }
+.header-actions { display: flex; gap: 10px; }
+.action-btn { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
+.action-btn.reset-btn { background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); color: #E74C3C; }
+.action-btn.reset-btn:hover { background: rgba(231, 76, 60, 0.2); border-color: #E74C3C; }
+.action-btn.save-btn { background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.3); color: #2ECC71; }
+.action-btn.save-btn:hover { background: rgba(46, 204, 113, 0.2); border-color: #2ECC71; }
 
-.st-group-body { padding: 0 18px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.st-group-body.collapsed { display: none; }
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 20px; margin-bottom: 20px; }
 
-.st-item { display: flex; flex-direction: column; gap: 6px; }
-.st-item-info { display: flex; flex-direction: column; gap: 3px; }
-.st-item-label { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-.st-item-desc { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); opacity: 0.7; }
-.st-item-control { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.setting-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; }
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--bg-tertiary); cursor: pointer; transition: all 0.2s ease; }
+.card-header:hover { background: var(--bg-hover); }
+.card-header .header-left { display: flex; align-items: center; gap: 12px; }
+.card-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--accent-gold); }
+.card-icon.detection { background: rgba(231, 76, 60, 0.1); }
+.card-icon.punishment { background: rgba(255, 140, 0, 0.1); }
+.card-icon.notification { background: rgba(74, 158, 255, 0.1); }
+.card-icon.system { background: rgba(46, 204, 113, 0.1); }
+.card-icon.advanced { background: rgba(155, 89, 182, 0.1); }
+.header-info { display: flex; flex-direction: column; gap: 2px; }
+.card-title { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.card-desc { font-size: 11px; color: var(--text-muted); }
+.toggle-icon { color: var(--text-muted); transition: transform 0.2s ease; }
+.toggle-icon.collapsed { transform: rotate(-90deg); }
 
-/* TOGGLE */
-.st-toggle {
-  width: 42px; height: 22px; border-radius: 2px;
-  background: rgba(147,51,234,0.12); border: 2px solid rgba(147,51,234,0.2);
-  cursor: pointer; position: relative; transition: all 0.2s ease;
-}
-.st-toggle.active {
-  background: rgba(168,85,247,0.3); border-color: rgba(168,85,247,0.5);
-  box-shadow: 0 0 10px rgba(147,51,234,0.25);
-}
-.st-toggle-knob {
-  position: absolute; top: 2px; left: 2px;
-  width: 14px; height: 14px; border-radius: 1px;
-  background: var(--text-muted); transition: all 0.2s ease;
-}
-.st-toggle.active .st-toggle-knob {
-  left: 22px; background: #c084fc;
-  box-shadow: 0 0 6px rgba(168,85,247,0.5);
-}
+.card-body { padding: 16px; border-top: 1px solid var(--border-color); transition: all 0.2s ease; }
+.card-body.collapsed { display: none; }
 
-/* NUMBER */
-.st-number { display: flex; align-items: center; gap: 4px; }
-.st-num-btn {
-  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 14px; font-weight: 700;
-  background: rgba(147,51,234,0.08); border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
-  color: var(--text-muted); cursor: pointer; transition: all 0.15s ease;
-}
-.st-num-btn:hover { background: rgba(147,51,234,0.18); color: #c084fc; border-color: rgba(168,85,247,0.3); }
-.st-num-input {
-  width: 56px; height: 28px; text-align: center;
-  font-family: var(--font-mono); font-size: 13px;
-  background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
-  color: var(--text-primary);
-}
-.st-num-input:focus { outline: none; border-color: rgba(168,85,247,0.35); }
-.st-num-unit { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.setting-item:last-child { border-bottom: none; }
+.item-info { display: flex; flex-direction: column; gap: 4px; }
+.item-label { font-size: 13px; color: var(--text-primary); }
+.item-desc { font-size: 11px; color: var(--text-muted); max-width: 280px; }
 
-/* SELECT & INPUT */
-.st-select {
-  padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
-  background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
-  color: var(--text-primary); width: 100%; transition: all 0.2s ease;
-}
-.st-select:focus { outline: none; border-color: rgba(168,85,247,0.35); }
-.st-input {
-  padding: 7px 10px; font-family: var(--font-mono); font-size: 12px;
-  background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
-  color: var(--text-primary); width: 100%; transition: all 0.2s ease;
-}
-.st-input:focus { outline: none; border-color: rgba(168,85,247,0.35); }
+.item-control { display: flex; align-items: center; gap: 8px; }
 
-/* ACTIONS */
-.st-actions { display: flex; gap: 10px; padding-top: 6px; }
-.st-act-btn {
-  display: flex; align-items: center; gap: 7px;
-  padding: 10px 20px; font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-  border-radius: 2px; cursor: pointer; transition: all 0.2s ease;
-  letter-spacing: 0.5px; text-transform: uppercase;
-}
-.st-act-btn.save { background: linear-gradient(180deg, #a855f7, #7c3aed); border: 2px solid rgba(147,51,234,0.4); color: #fff; }
-.st-act-btn.save:hover { background: linear-gradient(180deg, #9333ea, #6d28d9); box-shadow: 0 0 16px rgba(147,51,234,0.3); }
-.st-act-btn.sync { background: rgba(6,182,212,0.08); border: 2px solid rgba(6,182,212,0.25); color: #06b6d4; }
-.st-act-btn.sync:hover { background: rgba(6,182,212,0.16); border-color: rgba(6,182,212,0.4); }
-.st-act-btn.reset { background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.18); color: var(--text-muted); }
-.st-act-btn.reset:hover { background: rgba(147,51,234,0.14); color: var(--text-primary); border-color: rgba(168,85,247,0.3); }
+.toggle-switch { width: 48px; height: 26px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 13px; cursor: pointer; position: relative; transition: all 0.2s ease; }
+.toggle-switch.active { background: var(--accent-gold-dim); border-color: var(--accent-gold); }
+.toggle-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background: var(--text-secondary); border-radius: 50%; transition: all 0.2s ease; }
+.toggle-switch.active .toggle-knob { left: 27px; background: var(--accent-gold); }
 
-@media (max-width: 768px) { .st-group-body { grid-template-columns: 1fr; } }
+.number-control { display: flex; align-items: center; gap: 4px; }
+.num-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s ease; }
+.num-btn:hover:not(:disabled) { border-color: var(--accent-gold); color: var(--accent-gold); }
+.num-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.num-input { width: 60px; height: 28px; padding: 0 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; text-align: center; outline: none; }
+.num-input:focus { border-color: var(--accent-gold); }
+.num-unit { font-size: 12px; color: var(--text-muted); }
+
+.select-control { padding: 6px 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; cursor: pointer; outline: none; }
+.select-control:focus { border-color: var(--accent-gold); }
+
+.text-input { padding: 6px 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 12px; outline: none; width: 180px; }
+.text-input:focus { border-color: var(--accent-gold); }
+.text-input::placeholder { color: var(--text-muted); }
+
+.sync-panel { display: flex; align-items: center; gap: 16px; padding: 20px; background: linear-gradient(135deg, var(--accent-gold-dim) 0%, var(--bg-card) 100%); border: 1px solid var(--border-gold); border-radius: var(--radius-md); }
+.panel-icon { color: var(--accent-gold); }
+.panel-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.sync-panel .panel-title { font-family: var(--font-sans); font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.sync-panel .panel-desc { font-size: 12px; color: var(--text-muted); }
+.sync-btn { padding: 10px 24px; background: var(--accent-gold); border: none; border-radius: var(--radius-sm); color: #0a0a0f; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s ease; }
+.sync-btn:hover { background: var(--accent-gold-light); box-shadow: var(--shadow-gold-strong); }
 </style>

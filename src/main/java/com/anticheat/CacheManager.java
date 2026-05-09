@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 public class CacheManager {
@@ -14,9 +13,8 @@ public class CacheManager {
     private final AntiCheatPlugin plugin;
     private final Logger logger;
 
-    private final Set<String> bannedUuids = ConcurrentHashMap.newKeySet();
-    private final Map<String, String> banReasons = new ConcurrentHashMap<>();
-    private final Set<String> whitelistedUuids = ConcurrentHashMap.newKeySet();
+    private volatile ConcurrentHashMap<String, String> banCache = new ConcurrentHashMap<>();
+    private volatile Set<String> whitelistedUuids = ConcurrentHashMap.newKeySet();
 
     private volatile long lastBanCacheRefresh = 0;
     private volatile long lastWhitelistCacheRefresh = 0;
@@ -38,21 +36,19 @@ public class CacheManager {
     }
 
     public boolean isBanned(String uuid) {
-        return bannedUuids.contains(uuid);
+        return banCache.containsKey(uuid);
     }
 
     public String getBanReason(String uuid) {
-        return banReasons.getOrDefault(uuid, "作弊行为");
+        return banCache.getOrDefault(uuid, "作弊行为");
     }
 
     public void addBanned(String uuid, String reason) {
-        bannedUuids.add(uuid);
-        banReasons.put(uuid, reason);
+        banCache.put(uuid, reason != null ? reason : "作弊行为");
     }
 
     public void removeBanned(String uuid) {
-        bannedUuids.remove(uuid);
-        banReasons.remove(uuid);
+        banCache.remove(uuid);
     }
 
     public boolean isWhitelisted(String uuid) {
@@ -68,7 +64,7 @@ public class CacheManager {
     }
 
     public int getBannedCount() {
-        return bannedUuids.size();
+        return banCache.size();
     }
 
     public int getWhitelistedCount() {
@@ -79,24 +75,21 @@ public class CacheManager {
         try {
             List<Map<String, Object>> result = plugin.getHttp().getList("/api/punishment/active");
             if (result != null) {
-                bannedUuids.clear();
-                banReasons.clear();
-
+                ConcurrentHashMap<String, String> newCache = new ConcurrentHashMap<>();
                 for (Map<String, Object> item : result) {
                     Object uuidObj = item.get("uuid");
                     if (uuidObj != null) {
                         String uuid = uuidObj.toString();
-                        bannedUuids.add(uuid);
                         Object reasonObj = item.get("reason");
-                        banReasons.put(uuid, reasonObj != null ? reasonObj.toString() : "作弊行为");
+                        newCache.put(uuid, reasonObj != null ? reasonObj.toString() : "作弊行为");
                     }
                 }
-
+                banCache = newCache;
                 lastBanCacheRefresh = System.currentTimeMillis();
-                logger.fine("[CacheManager] 封禁缓存已刷新，共 " + bannedUuids.size() + " 条记录");
+                logger.fine("[CacheManager] 封禁缓存已刷新，共 " + banCache.size() + " 条记录");
             }
         } catch (Exception e) {
-            logger.fine("[CacheManager] 刷新封禁缓存失败: " + e.getMessage());
+            logger.warning("[CacheManager] 刷新封禁缓存失败: " + e.getMessage());
         }
     }
 
@@ -104,20 +97,20 @@ public class CacheManager {
         try {
             List<Map<String, Object>> result = plugin.getHttp().getList("/api/whitelist/active");
             if (result != null) {
-                whitelistedUuids.clear();
-
+                Set<String> newSet = ConcurrentHashMap.newKeySet();
                 for (Map<String, Object> item : result) {
                     Object uuidObj = item.get("uuid");
                     if (uuidObj != null) {
-                        whitelistedUuids.add(uuidObj.toString());
+                        newSet.add(uuidObj.toString());
                     }
                 }
-
+                whitelistedUuids = newSet;
                 lastWhitelistCacheRefresh = System.currentTimeMillis();
-                logger.fine("[CacheManager] 白名单缓存已刷新，共 " + whitelistedUuids.size() + " 条记录");
+                logger.fine("[CacheManager] 白名单缓存已刷新，共 "
+                        + whitelistedUuids.size() + " 条记录");
             }
         } catch (Exception e) {
-            logger.fine("[CacheManager] 刷新白名单缓存失败: " + e.getMessage());
+            logger.warning("[CacheManager] 刷新白名单缓存失败: " + e.getMessage());
         }
     }
 

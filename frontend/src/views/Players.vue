@@ -1,269 +1,350 @@
 <template>
-  <div class="players-terminal">
-    <canvas class="pt-scanlines" ref="scanlineCanvas"></canvas>
-
-    <div class="pt-header">
-      <div class="pt-prompt">
-        <span class="pt-prompt-sign">root@acs:~$</span>
-        <span class="pt-prompt-cmd">./players.scan --target=all --sort=risk</span>
-        <span class="pt-cursor">_</span>
+  <div class="players-container">
+    <div class="players-header">
+      <div class="header-info">
+        <h2 class="page-heading">{{ t('nav.players') }}</h2>
+        <span class="entity-count">{{ filteredPlayers.length }} {{ t('players.entitiesIndexed') }}</span>
       </div>
-      <div class="pt-status">{{ filteredPlayers.length }} entities indexed</div>
-    </div>
 
-    <div class="pt-toolbar">
-      <div class="pt-filters">
-        <button :class="['pt-chip', { active: filter === 'all' }]" @click="filter = 'all'">
-          <span class="pt-chip-glyph">◙</span> ALL
-        </button>
-        <button :class="['pt-chip', { active: filter === 'high' }]" @click="filter = 'high'">
-          <span class="pt-chip-glyph" style="color:#ff3d5a">◆</span> HIGH
-        </button>
-        <button :class="['pt-chip', { active: filter === 'banned' }]" @click="filter = 'banned'">
-          <span class="pt-chip-glyph" style="color:#a855f7">◈</span> BANNED
-        </button>
-      </div>
-      <div class="pt-actions">
-        <div class="pt-search">
-          <span class="pt-search-prefix">$ grep</span>
-          <input v-model="searchQuery" type="text" :placeholder="t('players.searchPlaceholder')" />
-        </div>
-        <button class="pt-btn" @click="exportCSV">
-          <span class="pt-btn-icon">⇩</span> CSV
+      <div class="header-actions">
+        <button class="action-btn export-btn" @click="exportCSV">
+          <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          {{ t('common.csv') }}
         </button>
       </div>
     </div>
 
-    <div v-if="loading" class="pt-loading">
-      <div class="pt-load-bar"><div class="pt-load-bar-fill"></div></div>
-      <span class="pt-load-text">SCANNING ENTITIES <span class="pt-load-dots"><span>.</span><span>.</span><span>.</span></span></span>
-    </div>
-
-    <div v-else-if="filteredPlayers.length === 0" class="pt-empty">
-      <div class="pt-empty-icon">⊡</div>
-      <span>NO ENTITIES FOUND</span>
-    </div>
-
-    <div v-else class="pt-grid">
-      <div
-        v-for="(player, idx) in paginatedPlayers"
-        :key="player.id"
-        :class="['pt-card', getRiskTier(player.riskScore)]"
-        @click="showPlayerDetail(player)"
-        :style="{ animationDelay: (idx * 0.06) + 's' }"
-        ref="playerCards"
-      >
-        <div class="pt-card-scanline"></div>
-        <div class="pt-card-header">
-          <div class="pt-avatar-box">
-            <img :src="`https://mc-heads.net/avatar/${player.playerName}/48`" class="pt-avatar" />
-            <div :class="['pt-avatar-border', getRiskTier(player.riskScore)]"></div>
-          </div>
-          <div class="pt-card-id">
-            <div class="pt-card-name">{{ player.playerName }}</div>
-            <div class="pt-card-uuid">{{ player.uuid ? player.uuid.substring(0, 8) : '-' }}</div>
-          </div>
-          <div :class="['pt-risk-chip', getRiskTier(player.riskScore)]">
-            {{ getRiskText(player.riskScore) }}
-          </div>
-        </div>
-
-        <div class="pt-card-stats">
-          <div class="pt-stat">
-            <span class="pt-stat-cmd">$ risk.query</span>
-            <span class="pt-stat-val" :style="{ color: getRiskColor(player.riskScore) }">{{ player.riskScore }}</span>
-          </div>
-          <div class="pt-stat">
-            <span class="pt-stat-cmd">$ kicks.count</span>
-            <span class="pt-stat-val">{{ player.kickCount || 0 }}</span>
-          </div>
-          <div class="pt-stat">
-            <span class="pt-stat-cmd">$ last.seen</span>
-            <span class="pt-stat-val pt-stat-time">{{ formatTimeShort(player.lastSeen) }}</span>
-          </div>
-        </div>
-
-        <div class="pt-risk-meter">
-          <div class="pt-risk-track">
-            <div class="pt-risk-fill" :style="{ width: Math.min(player.riskScore * 5, 100) + '%', background: getRiskColor(player.riskScore) }"></div>
-          </div>
-        </div>
-
-        <div class="pt-card-actions">
-          <button class="pt-act view" @click.stop="showPlayerDetail(player)">
-            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-          </button>
-          <button class="pt-act delete" @click.stop="handleDelete(player.id)">
-            <svg viewBox="0 0 24 24" width="13" height="13"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="pt-pagination" v-if="filteredPlayers.length > 0">
-      <div class="pt-pag-left">
-        <span class="pt-pag-count">[{{ filteredPlayers.length }}] records</span>
-        <button v-if="selectedIds.size > 0" class="pt-pag-batch" @click="handleBatchDelete">
-          ▲ PURGE ({{ selectedIds.size }})
+    <div class="toolbar">
+      <div class="filter-group">
+        <button :class="['filter-chip', { active: filter === 'all' }]" @click="filter = 'all'">
+          {{ t('players.all') }}
+        </button>
+        <button :class="['filter-chip', { active: filter === 'high' }]" @click="filter = 'high'">
+          <span class="chip-indicator high"></span>
+          {{ t('players.highRisk') }}
+        </button>
+        <button :class="['filter-chip', { active: filter === 'banned' }]" @click="filter = 'banned'">
+          <span class="chip-indicator banned"></span>
+          {{ t('players.banned') }}
         </button>
       </div>
-      <div class="pt-pag-center">
-        <button class="pt-pag-btn" :disabled="currentPage === 1" @click="currentPage--">◄</button>
-        <span class="pt-pag-num">{{ currentPage }} / {{ totalPages }}</span>
-        <button class="pt-pag-btn" :disabled="currentPage >= totalPages" @click="currentPage++">►</button>
+
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="16" height="16" class="search-icon">
+          <path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          :placeholder="t('players.searchPlaceholder')"
+          class="search-input"
+        />
       </div>
-      <select v-model="pageSize" class="pt-pag-select">
+    </div>
+
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>{{ t('common.loading') }}...</span>
+    </div>
+
+    <div v-else-if="filteredPlayers.length === 0" class="empty-state">
+      <svg viewBox="0 0 24 24" width="48" height="48" class="empty-icon">
+        <path fill="currentColor" d="M12 4a4 4 0 014 4 4 4 0 01-4 4 4 4 0 01-4-4 4 4 0 014-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4z"/>
+      </svg>
+      <p>{{ t('players.noEntitiesFound') }}</p>
+    </div>
+
+    <div v-else class="player-grid">
+      <transition-group name="card-list" tag="div" class="grid-wrapper">
+        <div
+          v-for="(player, idx) in paginatedPlayers"
+          :key="player.id"
+          :class="['player-card', getRiskTier(player.riskScore)]"
+          @click="showPlayerDetail(player)"
+          :style="{ animationDelay: (idx * 0.05) + 's' }"
+        >
+          <div class="card-glow"></div>
+
+          <div class="card-header">
+            <div class="avatar-section">
+              <img
+                :src="`https://mc-heads.net/avatar/${player.playerName}/64`"
+                :alt="player.playerName"
+                class="player-avatar"
+              />
+              <div :class="['avatar-ring', getRiskTier(player.riskScore)]"></div>
+            </div>
+
+            <div class="player-identity">
+              <h3 class="player-name">{{ player.playerName }}</h3>
+              <span class="player-uuid">{{ player.uuid ? player.uuid.substring(0, 12) + '...' : '-' }}</span>
+            </div>
+
+            <div :class="['risk-badge', getRiskTier(player.riskScore)]">
+              {{ getRiskText(player.riskScore) }}
+            </div>
+          </div>
+
+          <div class="card-stats">
+            <div class="stat-item">
+              <span class="stat-label">{{ t('players.riskScore') }}</span>
+              <span class="stat-value" :style="{ color: getRiskColor(player.riskScore) }">{{ player.riskScore }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ t('players.kickCount') }}</span>
+              <span class="stat-value">{{ player.kickCount || 0 }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ t('players.lastSeen') }}</span>
+              <span class="stat-value stat-time">{{ formatTimeShort(player.lastSeen) }}</span>
+            </div>
+          </div>
+
+          <div class="risk-bar-container">
+            <div class="risk-bar-track">
+              <div
+                class="risk-bar-fill"
+                :style="{ width: Math.min(player.riskScore * 5, 100) + '%', background: getRiskGradient(player.riskScore) }"
+              ></div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button class="card-action view" @click.stop="showPlayerDetail(player)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            </button>
+            <button class="card-action delete" @click.stop="handleDelete(player.id)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            </button>
+          </div>
+        </div>
+      </transition-group>
+    </div>
+
+    <div v-if="filteredPlayers.length > 0" class="pagination">
+      <div class="pag-left">
+        <span class="record-count">{{ filteredPlayers.length }} {{ t('players.records') }}</span>
+      </div>
+
+      <div class="pag-center">
+        <button class="pag-btn" :disabled="currentPage === 1" @click="currentPage--">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
+        </button>
+        <span class="page-num">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="pag-btn" :disabled="currentPage >= totalPages" @click="currentPage++">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/></svg>
+        </button>
+      </div>
+
+      <select v-model="pageSize" class="page-size-select">
         <option :value="12">12</option>
         <option :value="24">24</option>
         <option :value="48">48</option>
       </select>
     </div>
 
-    <transition name="pt-modal-fade">
-      <div v-if="detailDialogVisible" class="pt-overlay" @click.self="detailDialogVisible = false">
-        <div class="pt-modal">
-          <div class="pt-modal-topbar">
-            <div class="pt-modal-player" v-if="selectedPlayer">
-              <img :src="`https://mc-heads.net/avatar/${selectedPlayer.playerName}/64`" class="pt-modal-head" />
+    <!-- Player Detail Modal -->
+    <transition name="modal-fade">
+      <div v-if="detailDialogVisible" class="modal-overlay" @click.self="detailDialogVisible = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-player-info" v-if="selectedPlayer">
+              <img :src="`https://mc-heads.net/avatar/${selectedPlayer.playerName}/80`" class="modal-avatar" />
               <div>
-                <div class="pt-modal-name">{{ selectedPlayer.playerName }}</div>
-                <div class="pt-modal-uuid">&lt;{{ selectedPlayer.uuid }}&gt;</div>
+                <h3 class="modal-name">{{ selectedPlayer.playerName }}</h3>
+                <span class="modal-uuid">{{ selectedPlayer.uuid }}</span>
               </div>
             </div>
-            <button class="pt-modal-close" @click="detailDialogVisible = false">┼</button>
+            <button class="modal-close" @click="detailDialogVisible = false">×</button>
           </div>
 
-          <div class="pt-modal-body" v-if="selectedPlayer">
-            <div class="pt-modal-risk">
-              <div class="pt-modal-gauge">
-                <div class="pt-gauge-bar">
-                  <div class="pt-gauge-fill" :style="{ width: Math.min(selectedPlayer.riskScore * 5, 100) + '%', background: getRiskColor(selectedPlayer.riskScore) }"></div>
+          <div class="modal-body" v-if="selectedPlayer">
+            <div class="risk-gauge-section">
+              <div class="gauge-wrapper">
+                <div class="gauge-bar">
+                  <div
+                    class="gauge-fill"
+                    :style="{ width: Math.min(selectedPlayer.riskScore * 5, 100) + '%', background: getRiskGradient(selectedPlayer.riskScore) }"
+                  ></div>
                 </div>
-                <div class="pt-gauge-labels">
-                  <span>0</span><span :style="{ color: getRiskColor(selectedPlayer.riskScore) }">{{ selectedPlayer.riskScore }}</span><span>20+</span>
+                <div class="gauge-labels">
+                  <span>0</span>
+                  <span :style="{ color: getRiskColor(selectedPlayer.riskScore) }">{{ selectedPlayer.riskScore }}</span>
+                  <span>20+</span>
                 </div>
               </div>
-              <div class="pt-modal-meta">
-                <div class="pt-meta-item">
-                  <span class="pt-meta-cmd">$ kicks.count</span>
-                  <span class="pt-meta-val">{{ selectedPlayer.kickCount || 0 }}</span>
+
+              <div class="meta-info">
+                <div class="meta-item">
+                  <span class="meta-label">{{ t('players.kickCount') }}</span>
+                  <span class="meta-value">{{ selectedPlayer.kickCount || 0 }}</span>
                 </div>
-                <div class="pt-meta-item">
-                  <span class="pt-meta-cmd">$ ban.status</span>
-                  <span :class="['pt-meta-val', banInfo.banned ? 'pt-meta-danger' : 'pt-meta-safe']">{{ banInfo.banned ? 'TRUE' : 'FALSE' }}</span>
+                <div class="meta-item">
+                  <span class="meta-label">{{ t('players.banStatus') }}</span>
+                  <span :class="['meta-value', banInfo.banned ? 'danger' : 'safe']">
+                    {{ banInfo.banned ? t('players.banned') : t('players.notBanned') }}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div class="pt-modal-tabs">
-              <button :class="['pt-tab', { active: activeTab === 'basic' }]" @click="activeTab = 'basic'">info.dat</button>
-              <button :class="['pt-tab', { active: activeTab === 'cheats' }]" @click="activeTab = 'cheats'">cheats.log</button>
-              <button :class="['pt-tab', { active: activeTab === 'punishments' }]" @click="activeTab = 'punishments'">bans.log</button>
-              <button :class="['pt-tab', { active: activeTab === 'ai' }]" @click="activeTab = 'ai'; analyzePlayerCheat()">ai.diag</button>
+            <div class="tab-navigation">
+              <button :class="['tab-btn', { active: activeTab === 'basic' }]" @click="activeTab = 'basic'">
+                {{ t('players.infoTab') }}
+              </button>
+              <button :class="['tab-btn', { active: activeTab === 'cheats' }]" @click="activeTab = 'cheats'; loadCheatRecords()">
+                {{ t('players.cheatsLog') }}
+              </button>
+              <button :class="['tab-btn', { active: activeTab === 'punishments' }]" @click="activeTab = 'punishments'; loadPunishments()">
+                {{ t('players.bansLog') }}
+              </button>
+              <button :class="['tab-btn', { active: activeTab === 'ai' }]" @click="activeTab = 'ai'; analyzePlayerCheat()">
+                {{ t('ai.aiAnalysis') }}
+              </button>
             </div>
 
-            <div class="pt-tab-content">
-              <div v-show="activeTab === 'basic'" class="pt-info-grid">
-                <div class="pt-info-cell"><span class="pt-info-cmd">$ player.name</span><span class="pt-info-val">{{ selectedPlayer.playerName }}</span></div>
-                <div class="pt-info-cell"><span class="pt-info-cmd">$ risk.score</span><span :class="['pt-info-val', getRiskClass(selectedPlayer.riskScore)]">{{ selectedPlayer.riskScore }} ({{ getRiskText(selectedPlayer.riskScore) }})</span></div>
-                <div class="pt-info-cell"><span class="pt-info-cmd">$ kicks.total</span><span class="pt-info-val">{{ selectedPlayer.kickCount || 0 }}</span></div>
-                <div class="pt-info-cell"><span class="pt-info-cmd">$ last.seen</span><span class="pt-info-val">{{ formatTime(selectedPlayer.lastSeen) }}</span></div>
-              </div>
-
-              <div v-show="activeTab === 'cheats'" class="pt-cheats-log">
-                <div v-if="loadingRecords" class="pt-tab-status">$ tail -f cheats.log...</div>
-                <div v-else-if="playerCheatRecords.length === 0" class="pt-tab-status">[EMPTY]</div>
-                <div v-else :class="['pt-log-entry', record.severity >= 3 ? 'pt-log-danger' : '']" v-for="record in playerCheatRecords" :key="record.id">
-                  <span class="pt-log-time">[{{ formatTimeShort(record.detectionTime) }}]</span>
-                  <span :class="['pt-log-tag', getCheatClass(record.cheatType)]">{{ record.cheatType }}</span>
-                  <span :class="['pt-log-sev', getSeverityClass(record.severity)]">Lv.{{ record.severity }}</span>
-                  <span class="pt-log-msg">{{ record.details }}</span>
+            <div class="tab-content">
+              <div v-show="activeTab === 'basic'" class="info-grid">
+                <div class="info-cell">
+                  <span class="info-label">{{ t('players.playerName') }}</span>
+                  <span class="info-value">{{ selectedPlayer.playerName }}</span>
+                </div>
+                <div class="info-cell">
+                  <span class="info-label">{{ t('players.riskScore') }}</span>
+                  <span :class="['info-value', getRiskClass(selectedPlayer.riskScore)]">
+                    {{ selectedPlayer.riskScore }} ({{ getRiskText(selectedPlayer.riskScore) }})
+                  </span>
+                </div>
+                <div class="info-cell">
+                  <span class="info-label">{{ t('players.kickCount') }}</span>
+                  <span class="info-value">{{ selectedPlayer.kickCount || 0 }}</span>
+                </div>
+                <div class="info-cell">
+                  <span class="info-label">{{ t('players.lastSeen') }}</span>
+                  <span class="info-value">{{ formatTime(selectedPlayer.lastSeen) }}</span>
                 </div>
               </div>
 
-              <div v-show="activeTab === 'punishments'" class="pt-bans-log">
-                <div v-if="loadingPunishments" class="pt-tab-status">$ tail -f bans.log...</div>
-                <div v-else-if="playerPunishments.length === 0" class="pt-tab-status">[EMPTY]</div>
-                <div v-else class="pt-ban-entry" v-for="punishment in playerPunishments" :key="punishment.id">
-                  <span :class="['pt-ban-type', punishment.active ? 'pt-ban-active' : 'pt-ban-expired']">{{ punishment.punishmentType === 'PERMANENT' ? 'PERM' : 'TEMP' }}</span>
-                  <span class="pt-ban-reason">{{ punishment.reason }}</span>
-                </div>
-              </div>
-
-              <div v-show="activeTab === 'ai'" class="pt-ai-panel">
-                <div v-if="aiPlayerLoading" class="pt-tab-status">
-                  <div class="pt-ai-spinner"></div>
-                  $ ai.diagnose --target={{ selectedPlayer?.playerName }}...
-                </div>
-                <div v-else-if="!aiPlayerResult" class="pt-tab-status">Press ai.diag to analyze</div>
-                <div v-else class="pt-ai-result">
-                  <div v-if="aiPlayerResult.analysis" class="pt-ai-block">
-                    <div class="pt-ai-label">> DIAGNOSIS</div>
-                    <div class="pt-ai-text" v-html="renderAiText(aiPlayerResult.analysis)"></div>
+              <div v-show="activeTab === 'cheats'" class="cheats-log">
+                <div v-if="loadingRecords" class="loading-text">{{ t('players.loadingCheats') }}...</div>
+                <div v-else-if="playerCheatRecords.length === 0" class="empty-text">{{ t('players.noData') }}</div>
+                <div v-else class="log-list">
+                  <div
+                    v-for="record in playerCheatRecords"
+                    :key="record.id"
+                    :class="['log-entry', record.severity >= 3 ? 'high-severity' : '']"
+                  >
+                    <span class="log-time">[{{ formatTimeShort(record.detectionTime) }}]</span>
+                    <span :class="['log-tag', getCheatClass(record.cheatType)]">{{ record.cheatType }}</span>
+                    <span :class="['log-level', getSeverityClass(record.severity)]">Lv.{{ record.severity }}</span>
+                    <span class="log-message">{{ record.details }}</span>
                   </div>
-                  <div class="pt-ai-row">
-                    <div v-if="aiPlayerResult.verdict" class="pt-ai-block">
-                      <div class="pt-ai-label">> VERDICT</div>
-                      <span :class="['pt-ai-chip', getVerdictClass(aiPlayerResult.verdict)]">{{ aiPlayerResult.verdict }}</span>
+                </div>
+              </div>
+
+              <div v-show="activeTab === 'punishments'" class="punishments-log">
+                <div v-if="loadingPunishments" class="loading-text">{{ t('players.loadingBans') }}...</div>
+                <div v-else-if="playerPunishments.length === 0" class="empty-text">{{ t('players.noData') }}</div>
+                <div v-else class="ban-list">
+                  <div v-for="punishment in playerPunishments" :key="punishment.id" class="ban-entry">
+                    <span :class="['ban-type', punishment.active ? 'active' : 'expired']">
+                      {{ punishment.punishmentType === 'PERMANENT' ? 'PERM' : 'TEMP' }}
+                    </span>
+                    <span class="ban-reason">{{ punishment.reason }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-show="activeTab === 'ai'" class="ai-panel">
+                <div v-if="aiPlayerLoading" class="loading-text">
+                  <div class="ai-spinner"></div>
+                  Analyzing {{ selectedPlayer?.playerName }}...
+                </div>
+                <div v-else-if="!aiPlayerResult" class="empty-text">{{ t('players.pressAnalyze') }}</div>
+                <div v-else class="ai-result">
+                  <div v-if="aiPlayerResult.analysis" class="ai-block">
+                    <div class="ai-block-title">{{ t('dashboard.analysis') }}</div>
+                    <div class="ai-block-text" v-html="renderAiText(aiPlayerResult.analysis)"></div>
+                  </div>
+                  <div class="ai-row">
+                    <div v-if="aiPlayerResult.verdict" class="ai-block half">
+                      <div class="ai-block-title">{{ t('dashboard.verdict') }}</div>
+                      <span :class="['verdict-badge', getVerdictClass(aiPlayerResult.verdict)]">
+                        {{ aiPlayerResult.verdict }}
+                      </span>
                     </div>
-                    <div v-if="aiPlayerResult.confidence" class="pt-ai-block">
-                      <div class="pt-ai-label">> CONFIDENCE</div>
-                      <span class="pt-ai-conf">{{ (aiPlayerResult.confidence * 100).toFixed(0) }}%</span>
+                    <div v-if="aiPlayerResult.confidence" class="ai-block half">
+                      <div class="ai-block-title">{{ t('players.confidence') }}</div>
+                      <span class="confidence-value">{{ (aiPlayerResult.confidence * 100).toFixed(0) }}%</span>
                     </div>
                   </div>
-                  <div v-if="aiPlayerResult.suggestedAction" class="pt-ai-block">
-                    <div class="pt-ai-label">> ACTION</div>
-                    <span :class="['pt-ai-chip', getActionClass(aiPlayerResult.suggestedAction)]">{{ aiPlayerResult.suggestedAction }}</span>
+                  <div v-if="aiPlayerResult.suggestedAction" class="ai-block">
+                    <div class="ai-block-title">{{ t('dashboard.action') }}</div>
+                    <span :class="['action-badge', getActionClass(aiPlayerResult.suggestedAction)]">
+                      {{ aiPlayerResult.suggestedAction }}
+                    </span>
                   </div>
-                  <div v-if="aiPlayerResult.reasoning" class="pt-ai-block">
-                    <div class="pt-ai-label">> REASONING</div>
-                    <div class="pt-ai-text" v-html="renderAiText(aiPlayerResult.reasoning)"></div>
+                  <div v-if="aiPlayerResult.reasoning" class="ai-block">
+                    <div class="ai-block-title">{{ t('dashboard.reasoning') }}</div>
+                    <div class="ai-block-text" v-html="renderAiText(aiPlayerResult.reasoning)"></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="pt-modal-footer">
-            <button class="pt-modal-btn sec" @click="detailDialogVisible = false">[ESC]</button>
-            <button v-if="!banInfo.banned" class="pt-modal-btn danger" @click="handleBanPlayer">BAN</button>
-            <button v-else class="pt-modal-btn safe" @click="handleUnbanPlayer">UNBAN</button>
+          <div class="modal-footer">
+            <button class="modal-btn secondary" @click="detailDialogVisible = false">{{ t('common.close') }}</button>
+            <button v-if="!banInfo.banned" class="modal-btn danger" @click="handleBanPlayer">{{ t('players.ban') }}</button>
+            <button v-else class="modal-btn success" @click="handleUnbanPlayer">{{ t('players.unban') }}</button>
           </div>
         </div>
       </div>
     </transition>
 
-    <transition name="pt-modal-fade">
-      <div v-if="banDialogVisible" class="pt-overlay" @click.self="banDialogVisible = false">
-        <div class="pt-modal pt-modal-sm">
-          <div class="pt-modal-topbar">
-            <span class="pt-modal-title">> ban.execute --target={{ selectedPlayer?.playerName }}</span>
-            <button class="pt-modal-close" @click="banDialogVisible = false">┼</button>
+    <!-- Ban Modal -->
+    <transition name="modal-fade">
+      <div v-if="banDialogVisible" class="modal-overlay" @click.self="banDialogVisible = false">
+        <div class="modal-content modal-small">
+          <div class="modal-header">
+            <h3 class="modal-title">{{ t('players.banPlayer') }} - {{ selectedPlayer?.playerName }}</h3>
+            <button class="modal-close" @click="banDialogVisible = false">×</button>
           </div>
-          <div class="pt-modal-body">
-            <div class="pt-field">
-              <span class="pt-field-cmd">$ player.name</span>
-              <input :value="selectedPlayer?.playerName" disabled class="pt-input" />
+
+          <div class="modal-body">
+            <div class="form-field">
+              <label class="field-label">{{ t('players.playerName') }}</label>
+              <input :value="selectedPlayer?.playerName" disabled class="field-input disabled" />
             </div>
-            <div class="pt-field">
-              <span class="pt-field-cmd">$ ban.type</span>
-              <div class="pt-radio-row">
-                <label class="pt-radio"><input type="radio" value="PERMANENT" v-model="banForm.type" /> <span>PERMANENT</span></label>
-                <label class="pt-radio"><input type="radio" value="TEMPORARY" v-model="banForm.type" /> <span>TEMPORARY</span></label>
+
+            <div class="form-field">
+              <label class="field-label">{{ t('players.banType') }}</label>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" value="PERMANENT" v-model="banForm.type" />
+                  <span>{{ t('players.permanent') }}</span>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" value="TEMPORARY" v-model="banForm.type" />
+                  <span>{{ t('players.temporary') }}</span>
+                </label>
               </div>
             </div>
-            <div class="pt-field" v-if="banForm.type === 'TEMPORARY'">
-              <span class="pt-field-cmd">$ ban.duration (days)</span>
-              <input type="number" v-model="banForm.duration" min="1" max="365" class="pt-input" />
+
+            <div v-if="banForm.type === 'TEMPORARY'" class="form-field">
+              <label class="field-label">{{ t('players.durationDays') }}</label>
+              <input type="number" v-model="banForm.duration" min="1" max="365" class="field-input" />
             </div>
-            <div class="pt-field">
-              <span class="pt-field-cmd">$ ban.reason</span>
-              <textarea v-model="banForm.reason" :placeholder="t('reports.banReason')" class="pt-textarea"></textarea>
+
+            <div class="form-field">
+              <label class="field-label">{{ t('reports.banReason') }}</label>
+              <textarea v-model="banForm.reason" :placeholder="t('reports.banReason')" class="field-textarea"></textarea>
             </div>
           </div>
-          <div class="pt-modal-footer">
-            <button class="pt-modal-btn sec" @click="banDialogVisible = false">CANCEL</button>
-            <button class="pt-modal-btn danger" @click="confirmBan">EXECUTE</button>
+
+          <div class="modal-footer">
+            <button class="modal-btn secondary" @click="banDialogVisible = false">{{ t('common.cancel') }}</button>
+            <button class="modal-btn danger" @click="confirmBan">{{ t('players.execute') }}</button>
           </div>
         </div>
       </div>
@@ -272,7 +353,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { playerApi, cheatApi, punishmentApi, aiApi } from '../api'
 import { renderAiText } from '../utils/helpers'
@@ -283,15 +364,13 @@ export default {
   name: 'Players',
   setup() {
     const { t } = useI18n()
+
     const players = ref([])
     const searchQuery = ref('')
     const currentPage = ref(1)
     const pageSize = ref(12)
     const loading = ref(false)
     const filter = ref('all')
-    const sortField = ref('riskScore')
-    const sortOrder = ref('desc')
-    const selectedIds = ref(new Set())
     const detailDialogVisible = ref(false)
     const selectedPlayer = ref(null)
     const activeTab = ref('basic')
@@ -304,699 +383,876 @@ export default {
     const banForm = ref({ type: 'PERMANENT', duration: 7, reason: '' })
     const aiPlayerLoading = ref(false)
     const aiPlayerResult = ref(null)
-    const playerCards = ref([])
-    const scanlineCanvas = ref(null)
+
+    let controller = null
 
     const fetchPlayers = async () => {
       loading.value = true
-      try { players.value = await playerApi.getAll() } catch (e) { ElMessage.error(t('common.error')) } finally { loading.value = false }
+      try {
+        controller = new AbortController()
+        players.value = await playerApi.getAll({ signal: controller.signal })
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          ElMessage.error(t('common.error'))
+        }
+      } finally {
+        loading.value = false
+      }
     }
 
     const filteredPlayers = computed(() => {
       let list = players.value
-      if (searchQuery.value) list = list.filter(p => p.playerName.toLowerCase().includes(searchQuery.value.toLowerCase()))
-      if (filter.value === 'high') list = list.filter(p => p.riskScore >= 10)
-      if (filter.value === 'banned') list = list.filter(p => p.banned === true || p.riskScore >= 100)
-      if (sortField.value) {
-        list = [...list].sort((a, b) => {
-          const va = a[sortField.value] || 0, vb = b[sortField.value] || 0
-          return sortOrder.value === 'asc' ? va - vb : vb - va
-        })
+
+      if (searchQuery.value) {
+        list = list.filter(p =>
+          p.playerName.toLowerCase().includes(searchQuery.value.toLowerCase())
+        )
       }
-      return list
+
+      if (filter.value === 'high') {
+        list = list.filter(p => p.riskScore >= 10)
+      }
+
+      if (filter.value === 'banned') {
+        list = list.filter(p => p.banned === true || p.riskScore >= 100)
+      }
+
+      return [...list].sort((a, b) => b.riskScore - a.riskScore)
     })
 
-    const totalPages = computed(() => Math.ceil(filteredPlayers.value.length / pageSize.value))
-    const paginatedPlayers = computed(() => { const s = (currentPage.value - 1) * pageSize.value; return filteredPlayers.value.slice(s, s + pageSize.value) })
+    const totalPages = computed(() =>
+      Math.ceil(filteredPlayers.value.length / pageSize.value)
+    )
 
-    const getRiskTier = (s) => { if (s >= 10) return 'tier-high'; if (s >= 5) return 'tier-medium'; return 'tier-low' }
-    const getRiskClass = (s) => { if (s >= 10) return 'text-red'; if (s >= 5) return 'text-orange'; return 'text-green' }
-    const getRiskText = (s) => { if (s >= 10) return t('players.high'); if (s >= 5) return t('players.medium'); return t('players.low') }
-    const getRiskColor = (s) => { if (s >= 10) return '#ff3d5a'; if (s >= 5) return '#ff9100'; return '#00e676' }
-    const getCheatClass = (ct) => { const m = { '飞行作弊': 'tag-fly', '速度作弊': 'tag-speed', '自动点击作弊': 'tag-auto', '杀戮光环': 'tag-kill' }; return m[ct] || 'tag-default' }
-    const getSeverityClass = (s) => { if (s >= 4) return 'sev-critical'; if (s >= 3) return 'sev-high'; if (s >= 2) return 'sev-medium'; return 'sev-low' }
+    const paginatedPlayers = computed(() => {
+      const start = (currentPage.value - 1) * pageSize.value
+      return filteredPlayers.value.slice(start, start + pageSize.value)
+    })
 
-    const formatTime = (ts) => { if (!ts) return '-'; return new Date(ts).toLocaleString() }
-    const formatTimeShort = (ts) => { if (!ts) return '-'; const d = new Date(ts); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}` }
+    const getRiskTier = (score) => {
+      if (score >= 10) return 'high'
+      if (score >= 5) return 'medium'
+      return 'low'
+    }
+
+    const getRiskClass = (score) => {
+      if (score >= 10) return 'text-danger'
+      if (score >= 5) return 'text-warning'
+      return 'text-success'
+    }
+
+    const getRiskText = (score) => {
+      if (score >= 10) return t('players.high')
+      if (score >= 5) return t('players.medium')
+      return t('players.low')
+    }
+
+    const getRiskColor = (score) => {
+      if (score >= 10) return '#E74C3C'
+      if (score >= 5) return '#FF8C00'
+      return '#2ECC71'
+    }
+
+    const getRiskGradient = (score) => {
+      const color = getRiskColor(score)
+      return `linear-gradient(90deg, ${color}, ${color}88)`
+    }
+
+    const getCheatClass = (type) => {
+      const map = {
+        '飞行作弊': 'fly',
+        '速度作弊': 'speed',
+        '自动点击作弊': 'auto',
+        '杀戮光环': 'kill'
+      }
+      return map[type] || 'default'
+    }
+
+    const getSeverityClass = (severity) => {
+      if (severity >= 4) return 'critical'
+      if (severity >= 3) return 'high'
+      if (severity >= 2) return 'medium'
+      return 'low'
+    }
+
+    const formatTime = (ts) => {
+      if (!ts) return '-'
+      return new Date(ts).toLocaleString()
+    }
+
+    const formatTimeShort = (ts) => {
+      if (!ts) return '-'
+      const d = new Date(ts)
+      return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
+    }
 
     const exportCSV = () => {
       const headers = ['playerName', 'uuid', 'riskScore', 'kickCount', 'lastSeen']
       const rows = filteredPlayers.value.map(p => headers.map(h => p[h] || ''))
       const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
       const blob = new Blob([csv], { type: 'text/csv' })
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'players.csv'; a.click()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = 'players.csv'
+      a.click()
     }
 
     const showPlayerDetail = async (player) => {
-      selectedPlayer.value = player; detailDialogVisible.value = true; activeTab.value = 'basic'; loadingRecords.value = true; loadingPunishments.value = true; aiPlayerResult.value = null
+      selectedPlayer.value = player
+      detailDialogVisible.value = true
+      activeTab.value = 'basic'
+      loadingRecords.value = true
+      loadingPunishments.value = true
+      aiPlayerResult.value = null
+
       try {
-        const [records, punishments, banStatus] = await Promise.all([cheatApi.getByPlayerUuid(player.uuid), punishmentApi.getByUuid(player.uuid), punishmentApi.checkBanStatus(player.uuid)])
-        playerCheatRecords.value = records; playerPunishments.value = punishments; banInfo.value = banStatus
-      } catch (e) { console.error(e) } finally { loadingRecords.value = false; loadingPunishments.value = false }
+        const [records, punishments, status] = await Promise.all([
+          cheatApi.getByPlayerUuid(player.uuid),
+          punishmentApi.getByUuid(player.uuid),
+          punishmentApi.checkBanStatus(player.uuid)
+        ])
+        playerCheatRecords.value = records
+        playerPunishments.value = punishments
+        banInfo.value = status
+      } catch (e) {
+        console.error(e)
+      } finally {
+        loadingRecords.value = false
+        loadingPunishments.value = false
+      }
+    }
+
+    const loadCheatRecords = () => {
+      if (selectedPlayer.value && playerCheatRecords.value.length === 0) {
+        loadingRecords.value = true
+        cheatApi.getByPlayerUuid(selectedPlayer.value.uuid)
+          .then(records => {
+            playerCheatRecords.value = records
+          })
+          .catch(console.error)
+          .finally(() => {
+            loadingRecords.value = false
+          })
+      }
+    }
+
+    const loadPunishments = () => {
+      if (selectedPlayer.value && playerPunishments.value.length === 0) {
+        loadingPunishments.value = true
+        punishmentApi.getByUuid(selectedPlayer.value.uuid)
+          .then(punishments => {
+            playerPunishments.value = punishments
+          })
+          .catch(console.error)
+          .finally(() => {
+            loadingPunishments.value = false
+          })
+      }
     }
 
     const handleDelete = async (id) => {
-      try { await ElMessageBox.confirm(t('players.confirmDelete'), t('common.confirm'), { confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel'), type: 'warning' }); await playerApi.delete(id); ElMessage.success(t('common.success')); fetchPlayers() } catch (e) { if (e !== 'cancel') { ElMessage.error(t('common.error')) } }
+      try {
+        await ElMessageBox.confirm(
+          t('players.confirmDelete'),
+          t('common.confirm'),
+          {
+            confirmButtonText: t('common.delete'),
+            cancelButtonText: t('common.cancel'),
+            type: 'warning'
+          }
+        )
+        await playerApi.delete(id)
+        ElMessage.success(t('common.success'))
+        fetchPlayers()
+      } catch (e) {
+        if (e !== 'cancel') {
+          ElMessage.error(t('common.error'))
+        }
+      }
     }
 
-    const handleBatchDelete = async () => {
-      try { await ElMessageBox.confirm(`${t('common.delete')} ${selectedIds.value.size}?`, t('common.confirm'), { type: 'warning' }); for (const id of selectedIds.value) { await playerApi.delete(id) }; ElMessage.success(t('common.success')); selectedIds.value = new Set(); fetchPlayers() } catch (e) {}
+    const handleBanPlayer = () => {
+      banForm.value = { type: 'PERMANENT', duration: 7, reason: '' }
+      banDialogVisible.value = true
     }
 
-    const handleBanPlayer = () => { banForm.value = { type: 'PERMANENT', duration: 7, reason: '' }; banDialogVisible.value = true }
     const confirmBan = async () => {
-      if (!banForm.value.reason) { ElMessage.warning(t('common.warning')); return }
-      try { const dur = banForm.value.type === 'TEMPORARY' ? banForm.value.duration * 24 * 60 * 60 * 1000 : 0; await punishmentApi.ban({ uuid: selectedPlayer.value.uuid, playerName: selectedPlayer.value.playerName, punishmentType: banForm.value.type, reason: banForm.value.reason, duration: dur }); ElMessage.success(t('common.success')); banDialogVisible.value = false; showPlayerDetail(selectedPlayer.value); EventBus.emit(Events.STATS_CHANGED) } catch (e) { ElMessage.error(t('common.error')) }
+      if (!banForm.value.reason) {
+        ElMessage.warning(t('common.warning'))
+        return
+      }
+
+      try {
+        const duration = banForm.value.type === 'TEMPORARY'
+          ? banForm.value.duration * 24 * 60 * 60 * 1000
+          : 0
+
+        await punishmentApi.ban({
+          uuid: selectedPlayer.value.uuid,
+          playerName: selectedPlayer.value.playerName,
+          punishmentType: banForm.value.type,
+          reason: banForm.value.reason,
+          duration
+        })
+
+        ElMessage.success(t('common.success'))
+        banDialogVisible.value = false
+        showPlayerDetail(selectedPlayer.value)
+        EventBus.emit(Events.STATS_CHANGED)
+      } catch (e) {
+        ElMessage.error(t('common.error'))
+      }
     }
+
     const handleUnbanPlayer = async () => {
-      try { await ElMessageBox.confirm(t('punishments.confirmUnban'), t('common.confirm'), { type: 'warning' }); const ap = playerPunishments.value.find(p => p.active); if (ap) { await punishmentApi.unban(ap.id); ElMessage.success(t('common.success')); showPlayerDetail(selectedPlayer.value); EventBus.emit(Events.STATS_CHANGED) } } catch (e) {}
+      try {
+        await ElMessageBox.confirm(
+          t('punishments.confirmUnban'),
+          t('common.confirm'),
+          { type: 'warning' }
+        )
+
+        const activePunishment = playerPunishments.value.find(p => p.active)
+        if (activePunishment) {
+          await punishmentApi.unban(activePunishment.id)
+          ElMessage.success(t('common.success'))
+          showPlayerDetail(selectedPlayer.value)
+          EventBus.emit(Events.STATS_CHANGED)
+        }
+      } catch (e) {}
     }
 
     const analyzePlayerCheat = async () => {
       if (!selectedPlayer.value || aiPlayerLoading.value) return
-      aiPlayerLoading.value = true; aiPlayerResult.value = null
+
+      aiPlayerLoading.value = true
+      aiPlayerResult.value = null
+
       try {
-        const result = await aiApi.analyzeCheat(selectedPlayer.value.uuid, selectedPlayer.value.playerName)
-        if (result.success) { aiPlayerResult.value = result } else { ElMessage.warning(result.error || t('ai.error')) }
-      } catch (e) { ElMessage.error(t('ai.networkError')) } finally { aiPlayerLoading.value = false }
-    }
+        const result = await aiApi.analyzeCheat(
+          selectedPlayer.value.uuid,
+          selectedPlayer.value.playerName
+        )
 
-    const getVerdictClass = (v) => { if (!v) return ''; const u = v.toUpperCase(); if (u.includes('CONFIRMED') || u.includes('CHEATING')) return 'verdict-danger'; if (u.includes('SUSPICIOUS') || u.includes('LIKELY')) return 'verdict-warning'; if (u.includes('CLEAN')) return 'verdict-safe'; return 'verdict-warning' }
-    const getActionClass = (a) => { if (!a) return ''; const u = a.toUpperCase(); if (u.includes('PERM_BAN')) return 'action-danger'; if (u.includes('TEMP_BAN') || u.includes('KICK')) return 'action-warning'; if (u.includes('WARN')) return 'action-info'; if (u.includes('NONE')) return 'action-safe'; return 'action-info' }
-
-    const initScanlines = () => {
-      const canvas = scanlineCanvas.value
-      if (!canvas) return
-      const resize = () => {
-        const parent = canvas.parentElement
-        canvas.width = parent.offsetWidth
-        canvas.height = parent.offsetHeight
-      }
-      resize()
-      window.addEventListener('resize', resize)
-
-      const ctx = canvas.getContext('2d')
-      let offset = 0
-
-      const draw = () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
-        ctx.fillStyle = 'rgba(168, 85, 247, 0.04)'
-        const gap = 3
-        offset = (offset + 0.3) % gap
-        for (let y = offset; y < canvas.height; y += gap) {
-          ctx.fillRect(0, y, canvas.width, 1)
+        if (result.success) {
+          aiPlayerResult.value = result
+        } else {
+          ElMessage.warning(result.error || t('ai.error'))
         }
-        requestAnimationFrame(draw)
+      } catch (e) {
+        ElMessage.error(t('ai.networkError'))
+      } finally {
+        aiPlayerLoading.value = false
       }
-      draw()
     }
 
-    const setupCardTilt = () => {
-      nextTick(() => {
-        const cards = document.querySelectorAll('.pt-card')
-        cards.forEach(card => {
-          card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect()
-            const x = (e.clientX - rect.left) / rect.width - 0.5
-            const y = (e.clientY - rect.top) / rect.height - 0.5
-            card.style.transform = `perspective(500px) rotateY(${x * 3}deg) rotateX(${-y * 3}deg)`
-            const scanline = card.querySelector('.pt-card-scanline')
-            if (scanline) scanline.style.opacity = '0.7'
-          })
-          card.addEventListener('mouseleave', () => {
-            card.style.transform = 'perspective(500px) rotateY(0deg) rotateX(0deg)'
-            card.style.transition = 'transform 0.4s ease'
-            const scanline = card.querySelector('.pt-card-scanline')
-            if (scanline) scanline.style.opacity = '0.15'
-          })
-          card.addEventListener('mouseenter', () => {
-            card.style.transition = 'transform 0.1s ease'
-          })
-        })
-      })
+    const getVerdictClass = (verdict) => {
+      if (!verdict) return ''
+      const upper = verdict.toUpperCase()
+
+      if (upper.includes('CONFIRMED') || upper.includes('CHEATING')) return 'danger'
+      if (upper.includes('SUSPICIOUS') || upper.includes('LIKELY')) return 'warning'
+      if (upper.includes('CLEAN')) return 'success'
+
+      return 'warning'
+    }
+
+    const getActionClass = (action) => {
+      if (!action) return ''
+      const upper = action.toUpperCase()
+
+      if (upper.includes('PERM_BAN')) return 'danger'
+      if (upper.includes('TEMP_BAN') || upper.includes('KICK')) return 'warning'
+      if (upper.includes('WARN')) return 'info'
+      if (upper.includes('NONE')) return 'success'
+
+      return 'info'
     }
 
     onMounted(() => {
       fetchPlayers()
-      nextTick(() => {
-        initScanlines()
-        setupCardTilt()
-      })
+    })
+
+    onUnmounted(() => {
+      if (controller) {
+        controller.abort()
+      }
     })
 
     return {
-      players, searchQuery, currentPage, pageSize, filteredPlayers, paginatedPlayers, totalPages, loading, filter, selectedIds,
-      detailDialogVisible, selectedPlayer, activeTab, playerCheatRecords, playerPunishments, loadingRecords, loadingPunishments,
-      banInfo, banDialogVisible, banForm, aiPlayerLoading, aiPlayerResult,
-      getRiskTier, getRiskClass, getRiskText, getRiskColor, getCheatClass, getSeverityClass,
-      formatTime, formatTimeShort, exportCSV, showPlayerDetail, handleDelete, handleBatchDelete,
-      handleBanPlayer, confirmBan, handleUnbanPlayer, analyzePlayerCheat, renderAiText, getVerdictClass, getActionClass,
-      playerCards, scanlineCanvas, t
+      players,
+      searchQuery,
+      currentPage,
+      pageSize,
+      filteredPlayers,
+      paginatedPlayers,
+      totalPages,
+      loading,
+      filter,
+      detailDialogVisible,
+      selectedPlayer,
+      activeTab,
+      playerCheatRecords,
+      playerPunishments,
+      loadingRecords,
+      loadingPunishments,
+      banInfo,
+      banDialogVisible,
+      banForm,
+      aiPlayerLoading,
+      aiPlayerResult,
+      getRiskTier,
+      getRiskClass,
+      getRiskText,
+      getRiskColor,
+      getRiskGradient,
+      getCheatClass,
+      getSeverityClass,
+      formatTime,
+      formatTimeShort,
+      exportCSV,
+      showPlayerDetail,
+      loadCheatRecords,
+      loadPunishments,
+      handleDelete,
+      handleBanPlayer,
+      confirmBan,
+      handleUnbanPlayer,
+      analyzePlayerCheat,
+      renderAiText,
+      getVerdictClass,
+      getActionClass,
+      t
     }
   }
 }
 </script>
 
 <style scoped>
-.players-terminal {
+.players-container {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  position: relative;
-}
-
-.pt-scanlines {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
+  gap: 20px;
 }
 
 /* ===== HEADER ===== */
-.pt-header {
+.players-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-  z-index: 1;
 }
 
-.pt-prompt {
+.header-info {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.page-heading {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.entity-count {
   font-family: var(--font-mono);
   font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pt-prompt-sign {
-  color: #06b6d4;
-  font-weight: 700;
-}
-
-.pt-prompt-cmd {
-  color: #a855f7;
-}
-
-.pt-cursor {
-  color: #c084fc;
-  animation: ptBlink 1s step-end infinite;
-}
-
-@keyframes ptBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-.pt-status {
-  font-family: var(--font-mono);
-  font-size: 10px;
   color: var(--text-muted);
-  letter-spacing: 1px;
 }
 
-/* ===== TOOLBAR ===== */
-.pt-toolbar {
+.header-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  position: relative;
-  z-index: 1;
+  gap: 10px;
 }
 
-.pt-filters {
-  display: flex;
-  gap: 4px;
-  background: rgba(10, 4, 22, 0.6);
-  border: 2px solid rgba(147, 51, 234, 0.12);
-  border-radius: 2px;
-  padding: 3px;
-  image-rendering: pixelated;
-}
-
-.pt-chip {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 1px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.pt-chip:hover {
-  color: var(--text-primary);
-  background: rgba(147, 51, 234, 0.08);
-}
-
-.pt-chip.active {
-  background: rgba(147, 51, 234, 0.16);
-  border-color: rgba(168, 85, 247, 0.45);
-  color: #c084fc;
-  box-shadow: 0 0 8px rgba(147, 51, 234, 0.1), inset 0 1px 0 rgba(255,255,255,0.03);
-}
-
-.pt-chip-glyph {
-  font-size: 8px;
-}
-
-.pt-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.pt-search {
+.action-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  background: rgba(10, 4, 22, 0.6);
-  border: 2px solid rgba(147, 51, 234, 0.1);
-  border-radius: 2px;
-  width: 240px;
-  transition: all 0.2s ease;
-}
-
-.pt-search:focus-within {
-  border-color: rgba(168, 85, 247, 0.4);
-  box-shadow: 0 0 10px rgba(147, 51, 234, 0.1);
-}
-
-.pt-search-prefix {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: #06b6d4;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 600;
-  flex-shrink: 0;
+  background: rgba(255, 200, 0, 0.08);
+  border: 1px solid rgba(255, 200, 0, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--accent-gold);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.pt-search input {
-  flex: 1;
-  background: none;
-  border: none;
-  outline: none;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-primary);
+.action-btn:hover {
+  background: rgba(255, 200, 0, 0.15);
+  border-color: rgba(255, 200, 0, 0.4);
+  box-shadow: var(--shadow-gold);
 }
 
-.pt-search input::placeholder {
-  color: var(--text-muted);
+/* ===== TOOLBAR ===== */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.pt-btn {
+.filter-group {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-tertiary);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.filter-chip {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  background: rgba(10, 4, 22, 0.6);
-  border: 2px solid rgba(147, 51, 234, 0.1);
-  border-radius: 2px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pt-btn:hover {
-  border-color: rgba(168, 85, 247, 0.35);
-  color: #c084fc;
-}
-
-.pt-btn-icon {
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
   font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* ===== LOADING / EMPTY ===== */
-.pt-loading, .pt-empty {
+.filter-chip:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.filter-chip.active {
+  background: rgba(255, 200, 0, 0.12);
+  color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 200, 0, 0.1);
+}
+
+.chip-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.chip-indicator.high {
+  background: #E74C3C;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.5);
+}
+
+.chip-indicator.banned {
+  background: #9B59B6;
+  box-shadow: 0 0 6px rgba(155, 89, 182, 0.5);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 280px;
+  padding: 10px 12px 10px 38px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: rgba(255, 200, 0, 0.3);
+  box-shadow: 0 0 12px rgba(255, 200, 0, 0.08);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ===== LOADING / EMPTY STATES ===== */
+.loading-state,
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 80px 20px;
-  gap: 14px;
+  gap: 16px;
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 2px;
-  position: relative;
-  z-index: 1;
+  font-family: var(--font-sans);
+  font-size: 14px;
 }
 
-.pt-empty-icon {
-  font-size: 48px;
-  opacity: 0.15;
+.empty-icon {
+  opacity: 0.2;
 }
 
-.pt-load-bar {
-  width: 180px;
-  height: 2px;
-  background: rgba(147, 51, 234, 0.1);
-  border-radius: 1px;
-  overflow: hidden;
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.pt-load-bar-fill {
-  height: 100%;
-  width: 40%;
-  background: #a855f7;
-  border-radius: 1px;
-  animation: ptLoadScan 1.5s ease-in-out infinite;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes ptLoadScan {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
+/* ===== PLAYER GRID ===== */
+.player-grid {
+  min-height: 300px;
 }
 
-.pt-load-dots span {
-  animation: ptDotFade 1.4s infinite;
-  opacity: 0;
-}
-
-.pt-load-dots span:nth-child(1) { animation-delay: 0s; }
-.pt-load-dots span:nth-child(2) { animation-delay: 0.2s; }
-.pt-load-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes ptDotFade {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
-}
-
-/* ===== CARD GRID ===== */
-.pt-grid {
+.grid-wrapper {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 14px;
-  position: relative;
-  z-index: 1;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
 }
 
-.pt-card {
+.player-card {
   position: relative;
-  background: rgba(8, 3, 18, 0.85);
-  border: 2px solid rgba(147, 51, 234, 0.1);
-  border-radius: 2px;
-  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
   cursor: pointer;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
-  animation: ptCardIn 0.45s ease-out both;
-  image-rendering: pixelated;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardIn 0.4s ease-out both;
 }
 
-.pt-card::before {
-  content: '';
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card-glow {
   position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(45deg, transparent 48%, rgba(168,85,247,0.02) 48%, rgba(168,85,247,0.02) 52%, transparent 52%),
-    linear-gradient(-45deg, transparent 48%, rgba(168,85,247,0.02) 48%, rgba(168,85,247,0.02) 52%, transparent 52%);
-  pointer-events: none;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 200, 0, 0.06) 0%, transparent 70%);
   opacity: 0;
   transition: opacity 0.3s ease;
+  pointer-events: none;
 }
 
-.pt-card:hover::before {
+.player-card:hover .card-glow {
   opacity: 1;
 }
 
-@keyframes ptCardIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+.player-card:hover {
+  border-color: rgba(255, 200, 0, 0.25);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-gold-strong);
 }
 
-.pt-card:hover {
-  border-color: rgba(168, 85, 247, 0.4);
-  box-shadow: 0 1px 0 rgba(168,85,247,0.15), 0 4px 20px rgba(147,51,234,0.12);
+.player-card.high {
+  border-left: 3px solid #E74C3C;
 }
 
-.pt-card.tier-high { border-left: 4px solid #ff3d5a; }
-.pt-card.tier-medium { border-left: 4px solid #f59e0b; }
-.pt-card.tier-low { border-left: 4px solid #10b981; }
-
-.pt-card.tier-high:hover { box-shadow: 0 1px 0 rgba(255,61,90,0.2), 0 4px 20px rgba(255,61,90,0.15); }
-.pt-card.tier-medium:hover { box-shadow: 0 1px 0 rgba(245,158,11,0.2), 0 4px 20px rgba(245,158,11,0.12); }
-.pt-card.tier-low:hover { box-shadow: 0 1px 0 rgba(16,185,129,0.15), 0 4px 20px rgba(16,185,129,0.08); }
-
-/* -- scanline overlay -- */
-.pt-card-scanline {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(168,85,247,0.03) 2px, rgba(168,85,247,0.03) 4px);
-  pointer-events: none;
-  opacity: 0.15;
-  transition: opacity 0.3s ease;
+.player-card.medium {
+  border-left: 3px solid #FF8C00;
 }
 
-/* ===== CARD HEADER ===== */
-.pt-card-header {
+.player-card.low {
+  border-left: 3px solid #2ECC71;
+}
+
+.card-header {
   display: flex;
   align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.avatar-section {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.player-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+}
+
+.avatar-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: calc(var(--radius-sm) + 3px);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.player-card:hover .avatar-ring.high {
+  border-color: rgba(231, 76, 60, 0.5);
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.2);
+}
+
+.player-card:hover .avatar-ring.medium {
+  border-color: rgba(255, 140, 0, 0.5);
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.15);
+}
+
+.player-card:hover .avatar-ring.low {
+  border-color: rgba(46, 204, 113, 0.4);
+  box-shadow: 0 0 12px rgba(46, 204, 113, 0.12);
+}
+
+.player-identity {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-name {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-uuid {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.risk-badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.risk-badge.high {
+  background: rgba(231, 76, 60, 0.12);
+  color: #E74C3C;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.risk-badge.medium {
+  background: rgba(255, 140, 0, 0.12);
+  color: #FF8C00;
+  border: 1px solid rgba(255, 140, 0, 0.25);
+}
+
+.risk-badge.low {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ECC71;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+/* ===== CARD STATS ===== */
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 14px;
   position: relative;
   z-index: 1;
 }
 
-.pt-avatar-box {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.pt-avatar {
-  width: 44px;
-  height: 44px;
-  image-rendering: pixelated;
-  display: block;
-}
-
-.pt-avatar-border {
-  position: absolute;
-  inset: -2px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-}
-
-.pt-card:hover .pt-avatar-border.tier-high { border-color: rgba(255,61,90,0.5); box-shadow: 0 0 8px rgba(255,61,90,0.1); }
-.pt-card:hover .pt-avatar-border.tier-medium { border-color: rgba(245,158,11,0.5); box-shadow: 0 0 8px rgba(245,158,11,0.08); }
-.pt-card:hover .pt-avatar-border.tier-low { border-color: rgba(16,185,129,0.4); box-shadow: 0 0 8px rgba(16,185,129,0.06); }
-
-.pt-card-id {
-  flex: 1;
-  min-width: 0;
-}
-
-.pt-card-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pt-card-uuid {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.pt-risk-chip {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 3px 8px;
-  border: 1px solid;
-  flex-shrink: 0;
-}
-
-.pt-risk-chip.tier-high { border-color: rgba(255,61,90,0.3); color: #ff3d5a; background: rgba(255,61,90,0.08); }
-.pt-risk-chip.tier-medium { border-color: rgba(245,158,11,0.3); color: #f59e0b; background: rgba(245,158,11,0.08); }
-.pt-risk-chip.tier-low { border-color: rgba(16,185,129,0.25); color: #10b981; background: rgba(16,185,129,0.06); }
-
-/* ===== CARD STATS ===== */
-.pt-card-stats {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 10px;
-  position: relative;
-  z-index: 1;
-}
-
-.pt-stat {
+.stat-item {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
-.pt-stat-cmd {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 600;
-  color: #06b6d4;
-  opacity: 0.6;
+.stat-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.pt-stat-val {
+.stat-value {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1;
 }
 
-.pt-stat-time {
-  font-size: 10px;
+.stat-time {
+  font-size: 11px;
   font-weight: 500;
   color: var(--text-secondary);
 }
 
-/* ===== RISK METER ===== */
-.pt-risk-meter {
-  margin-bottom: 12px;
+/* ===== RISK BAR ===== */
+.risk-bar-container {
+  margin-bottom: 14px;
   position: relative;
   z-index: 1;
 }
 
-.pt-risk-track {
+.risk-bar-track {
   width: 100%;
-  height: 4px;
-  background: rgba(255,255,255,0.03);
+  height: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
   overflow: hidden;
 }
 
-.pt-risk-fill {
+.risk-bar-fill {
   height: 100%;
-  transition: width 0.6s ease;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px currentColor;
 }
 
-/* ===== ACTIONS ===== */
-.pt-card-actions {
+/* ===== CARD FOOTER ===== */
+.card-footer {
   display: flex;
-  gap: 4px;
   justify-content: flex-end;
+  gap: 8px;
   position: relative;
   z-index: 1;
 }
 
-.pt-act {
-  width: 30px;
-  height: 30px;
+.card-action {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255,255,255,0.02);
-  border: 2px solid rgba(147,51,234,0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.pt-act.view:hover { background: rgba(6,182,212,0.14); border-color: rgba(6,182,212,0.3); color: #06b6d4; }
-.pt-act.delete:hover { background: rgba(255,61,90,0.14); border-color: rgba(255,61,90,0.3); color: #ff3d5a; }
+.card-action.view:hover {
+  background: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.3);
+  color: #4A9EFF;
+}
+
+.card-action.delete:hover {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.3);
+  color: #E74C3C;
+}
 
 /* ===== PAGINATION ===== */
-.pt-pagination {
+.pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
-  border-top: 2px solid rgba(147,51,234,0.06);
+  padding: 16px 0;
+  border-top: 1px solid var(--border-color);
   flex-wrap: wrap;
-  gap: 10px;
-  position: relative;
-  z-index: 1;
+  gap: 12px;
 }
 
-.pt-pag-left {
+.pag-left {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.pt-pag-count {
+.record-count {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
 }
 
-.pt-pag-batch {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 4px 10px;
-  background: rgba(255,61,90,0.1);
-  border: 2px solid rgba(255,61,90,0.2);
-  color: #ff3d5a;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pt-pag-batch:hover { background: rgba(255,61,90,0.2); }
-
-.pt-pag-center {
+.pag-center {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.pt-pag-btn {
-  width: 30px;
-  height: 30px;
+.pag-btn {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
-  font-family: var(--font-mono);
-  font-size: 11px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.pt-pag-btn:hover:not(:disabled) { border-color: rgba(168,85,247,0.4); color: #c084fc; }
-.pt-pag-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+.pag-btn:hover:not(:disabled) {
+  border-color: rgba(255, 200, 0, 0.3);
+  color: var(--accent-gold);
+  box-shadow: var(--shadow-gold);
+}
 
-.pt-pag-num {
+.pag-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.page-num {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   color: var(--text-secondary);
+  min-width: 50px;
+  text-align: center;
 }
 
-.pt-pag-select {
-  padding: 6px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  background: rgba(10,4,22,0.6);
-  border: 2px solid rgba(147,51,234,0.1);
+.page-size-select {
+  padding: 8px 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
 }
 
-/* ===== OVERLAY ===== */
-.pt-overlay {
+/* ===== MODAL ===== */
+.modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(4,0,10,0.88);
-  backdrop-filter: blur(12px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1004,469 +1260,713 @@ export default {
   padding: 20px;
 }
 
-/* ===== MODAL ===== */
-.pt-modal {
-  background: rgba(8,3,18,0.98);
-  border: 2px solid rgba(147,51,234,0.25);
-  border-radius: 2px;
+.modal-content {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   width: 100%;
-  max-width: 580px;
+  max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  animation: ptModalIn 0.28s ease-out;
-  box-shadow: 0 10px 50px rgba(0,0,0,0.7), 0 0 40px rgba(147,51,234,0.12);
-  image-rendering: pixelated;
+  box-shadow: var(--shadow-lg), var(--shadow-gold-strong);
+  animation: modalIn 0.3s ease-out;
 }
 
-.pt-modal-sm {
-  max-width: 440px;
+.modal-small {
+  max-width: 480px;
 }
 
-@keyframes ptModalIn {
-  from { opacity: 0; transform: scale(0.94) translateY(12px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
-.pt-modal-topbar {
+.modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
-  border-bottom: 2px solid rgba(147,51,234,0.1);
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.pt-modal-player {
+.modal-player-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
-.pt-modal-head {
-  width: 48px;
-  height: 48px;
+.modal-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
   image-rendering: pixelated;
-  border: 2px solid rgba(147,51,234,0.2);
+  border: 2px solid rgba(255, 200, 0, 0.2);
 }
 
-.pt-modal-name {
+.modal-name {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.modal-uuid {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.modal-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.modal-close {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: var(--radius-sm);
+  color: #E74C3C;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: #E74C3C;
+  color: #fff;
+}
+
+.modal-body {
+  padding: 22px;
+}
+
+/* ===== RISK GAUGE SECTION ===== */
+.risk-gauge-section {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.gauge-wrapper {
+  flex: 1;
+}
+
+.gauge-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px currentColor;
+}
+
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.meta-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.meta-value {
+  font-family: var(--font-mono);
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.pt-modal-uuid {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-muted);
-  margin-top: 2px;
+.meta-value.danger {
+  color: #E74C3C;
 }
 
-.pt-modal-title {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: #a855f7;
-  font-weight: 600;
+.meta-value.safe {
+  color: #2ECC71;
 }
 
-.pt-modal-close {
-  width: 28px;
-  height: 28px;
+/* ===== TABS ===== */
+.tab-navigation {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,61,90,0.08);
-  border: 2px solid rgba(255,61,90,0.15);
-  color: var(--text-muted);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pt-modal-close:hover { background: rgba(255,61,90,0.2); color: #ff3d5a; }
-
-.pt-modal-body {
-  padding: 18px;
-}
-
-.pt-modal-risk {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 18px;
-  padding-bottom: 14px;
-  border-bottom: 2px solid rgba(147,51,234,0.06);
-}
-
-.pt-modal-gauge { flex: 1; }
-
-.pt-gauge-bar {
-  width: 100%;
-  height: 8px;
-  background: rgba(255,255,255,0.03);
-  overflow: hidden;
-}
-
-.pt-gauge-fill {
-  height: 100%;
-  transition: width 0.6s ease;
-}
-
-.pt-gauge-labels {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-.pt-modal-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.pt-meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pt-meta-cmd {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  color: #06b6d4;
-  opacity: 0.6;
-}
-
-.pt-meta-val {
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.pt-meta-danger { color: #ff3d5a; }
-.pt-meta-safe { color: #10b981; }
-
-.pt-modal-tabs {
-  display: flex;
-  gap: 2px;
+  gap: 4px;
   margin-bottom: 16px;
-  background: rgba(147,51,234,0.03);
-  padding: 3px;
-  border: 1px solid rgba(147,51,234,0.06);
+  background: var(--bg-tertiary);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
 }
 
-.pt-tab {
+.tab-btn {
   flex: 1;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 12px;
   font-weight: 600;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
   color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.3s ease;
 }
 
-.pt-tab:hover { color: var(--text-primary); }
-.pt-tab.active { background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.3); color: #c084fc; }
+.tab-btn:hover {
+  color: var(--text-primary);
+}
 
-.pt-tab-content { min-height: 120px; }
+.tab-btn.active {
+  background: rgba(255, 200, 0, 0.12);
+  color: var(--accent-gold);
+  box-shadow: 0 0 12px rgba(255, 200, 0, 0.08);
+}
 
-.pt-info-grid {
+.tab-content {
+  min-height: 150px;
+}
+
+.info-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
-.pt-info-cell {
+.info-cell {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: rgba(147,51,234,0.03);
-  border: 1px solid rgba(147,51,234,0.05);
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
 }
 
-.pt-info-cmd {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  color: #06b6d4;
-  opacity: 0.55;
+.info-label {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.pt-info-val {
-  font-size: 13px;
+.info-value {
+  font-family: var(--font-sans);
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
 }
 
-.text-red { color: #ff3d5a; }
-.text-orange { color: #f59e0b; }
-.text-green { color: #10b981; }
+.text-danger {
+  color: #E74C3C;
+}
 
-.pt-cheats-log, .pt-bans-log {
+.text-warning {
+  color: #FF8C00;
+}
+
+.text-success {
+  color: #2ECC71;
+}
+
+/* ===== LOGS ===== */
+.cheats-log,
+.punishments-log {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.pt-log-entry {
+.log-list,
+.ban-list {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 8px 10px;
-  background: rgba(147,51,234,0.025);
-  border-left: 2px solid rgba(168,85,247,0.2);
-  font-size: 11px;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.pt-log-entry.pt-log-danger {
-  border-left-color: #ff3d5a;
-  background: rgba(255,61,90,0.04);
-}
-
-.pt-log-time {
-  font-family: var(--font-mono);
-  font-size: 9px;
+.loading-text,
+.empty-text {
+  text-align: center;
+  padding: 40px 20px;
   color: var(--text-muted);
-  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
 }
 
-.pt-log-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border: 1px solid;
+.ai-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
 }
 
-.pt-log-tag.tag-fly { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: rgba(255,61,90,0.06); }
-.pt-log-tag.tag-speed { border-color: rgba(245,158,11,0.25); color: #f59e0b; background: rgba(245,158,11,0.06); }
-.pt-log-tag.tag-auto { border-color: rgba(6,182,212,0.25); color: #06b6d4; background: rgba(6,182,212,0.06); }
-.pt-log-tag.tag-kill { border-color: rgba(168,85,247,0.25); color: #a855f7; background: rgba(168,85,247,0.06); }
-.pt-log-tag.tag-default { border-color: rgba(147,51,234,0.2); color: #c084fc; background: rgba(147,51,234,0.05); }
-
-.pt-log-sev {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 5px;
-}
-
-.pt-log-sev.sev-critical { color: #a855f7; }
-.pt-log-sev.sev-high { color: #ff3d5a; }
-.pt-log-sev.sev-medium { color: #f59e0b; }
-.pt-log-sev.sev-low { color: #10b981; }
-
-.pt-log-msg { color: var(--text-secondary); }
-
-.pt-ban-entry {
+.log-entry {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: rgba(147,51,234,0.025);
-  border-left: 2px solid rgba(147,51,234,0.1);
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-color);
+  font-size: 12px;
+  transition: all 0.2s ease;
 }
 
-.pt-ban-type {
+.log-entry.high-severity {
+  border-left-color: #E74C3C;
+  background: rgba(231, 76, 60, 0.05);
+}
+
+.log-time {
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.log-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.log-tag.fly {
+  background: rgba(231, 76, 60, 0.12);
+  color: #E74C3C;
+}
+
+.log-tag.speed {
+  background: rgba(255, 140, 0, 0.12);
+  color: #FF8C00;
+}
+
+.log-tag.auto {
+  background: rgba(74, 158, 255, 0.12);
+  color: #4A9EFF;
+}
+
+.log-tag.kill {
+  background: rgba(155, 89, 182, 0.12);
+  color: #9B59B6;
+}
+
+.log-tag.default {
+  background: rgba(255, 200, 0, 0.12);
+  color: var(--accent-gold);
+}
+
+.log-level {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.log-level.critical {
+  color: #9B59B6;
+}
+
+.log-level.high {
+  color: #E74C3C;
+}
+
+.log-level.medium {
+  color: #FF8C00;
+}
+
+.log-level.low {
+  color: #2ECC71;
+}
+
+.log-message {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+}
+
+.ban-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border-color);
+}
+
+.ban-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid;
   flex-shrink: 0;
 }
 
-.pt-ban-active { border-color: rgba(255,61,90,0.25); color: #ff3d5a; }
-.pt-ban-expired { border-color: rgba(16,185,129,0.2); color: #10b981; }
-
-.pt-ban-reason { font-size: 12px; color: var(--text-secondary); }
-
-.pt-tab-status {
-  text-align: center;
-  padding: 30px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+.ban-type.active {
+  border-color: rgba(231, 76, 60, 0.3);
+  color: #E74C3C;
+  background: rgba(231, 76, 60, 0.08);
 }
 
-.pt-ai-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(147,51,234,0.12);
-  border-top-color: #a855f7;
-  animation: ptSpin 0.7s linear infinite;
+.ban-type.expired {
+  border-color: rgba(46, 204, 113, 0.25);
+  color: #2ECC71;
+  background: rgba(46, 204, 113, 0.06);
 }
 
-@keyframes ptSpin { to { transform: rotate(360deg); } }
-
-.pt-ai-result { display: flex; flex-direction: column; gap: 14px; }
-.pt-ai-row { display: flex; gap: 20px; }
-.pt-ai-row .pt-ai-block { flex: 1; }
-
-.pt-ai-label {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #06b6d4;
-  margin-bottom: 6px;
-}
-
-.pt-ai-text {
-  font-size: 12px;
-  line-height: 1.7;
+.ban-reason {
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
-.pt-ai-text :deep(strong) { color: #c084fc; }
-.pt-ai-text :deep(code) { background: rgba(168,85,247,0.08); padding: 1px 5px; font-size: 10px; }
-
-.pt-ai-chip {
-  display: inline-block;
-  padding: 4px 12px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  border: 1px solid;
-}
-
-.pt-ai-chip.verdict-danger { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: rgba(255,61,90,0.06); }
-.pt-ai-chip.verdict-warning { border-color: rgba(245,158,11,0.25); color: #f59e0b; background: rgba(245,158,11,0.06); }
-.pt-ai-chip.verdict-safe { border-color: rgba(16,185,129,0.2); color: #10b981; background: rgba(16,185,129,0.05); }
-.pt-ai-chip.action-danger { border-color: rgba(255,61,90,0.25); color: #ff3d5a; background: rgba(255,61,90,0.06); }
-.pt-ai-chip.action-warning { border-color: rgba(245,158,11,0.25); color: #f59e0b; background: rgba(245,158,11,0.06); }
-.pt-ai-chip.action-info { border-color: rgba(6,182,212,0.2); color: #06b6d4; background: rgba(6,182,212,0.05); }
-.pt-ai-chip.action-safe { border-color: rgba(16,185,129,0.2); color: #10b981; background: rgba(16,185,129,0.05); }
-
-.pt-ai-conf {
-  font-family: var(--font-mono);
-  font-size: 20px;
-  font-weight: 700;
-  color: #c084fc;
-}
-
-/* ===== MODAL FOOTER ===== */
-.pt-modal-footer {
+/* ===== AI PANEL ===== */
+.ai-panel,
+.ai-result {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 14px 18px;
-  border-top: 2px solid rgba(147,51,234,0.06);
+  flex-direction: column;
+  gap: 14px;
 }
 
-.pt-modal-btn {
-  padding: 8px 18px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  border: 2px solid;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pt-modal-btn.sec {
-  background: rgba(147,51,234,0.04);
-  border-color: rgba(147,51,234,0.1);
-  color: var(--text-muted);
-}
-
-.pt-modal-btn.sec:hover { background: rgba(147,51,234,0.1); color: var(--text-primary); }
-
-.pt-modal-btn.danger {
-  background: rgba(255,61,90,0.12);
-  border-color: rgba(255,61,90,0.3);
-  color: #ff3d5a;
-}
-
-.pt-modal-btn.danger:hover { background: rgba(255,61,90,0.22); }
-
-.pt-modal-btn.safe {
-  background: rgba(16,185,129,0.1);
-  border-color: rgba(16,185,129,0.22);
-  color: #10b981;
-}
-
-.pt-modal-btn.safe:hover { background: rgba(16,185,129,0.18); }
-
-/* ===== FORM FIELDS ===== */
-.pt-field {
-  margin-bottom: 14px;
-}
-
-.pt-field-cmd {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: #06b6d4;
-  margin-bottom: 6px;
-  opacity: 0.6;
-}
-
-.pt-input {
-  width: 100%;
-  padding: 9px 12px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  background: rgba(147,51,234,0.03);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-primary);
-  outline: none;
-}
-
-.pt-input:focus { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 8px rgba(147,51,234,0.1); }
-
-.pt-textarea {
-  width: 100%;
-  padding: 9px 12px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  background: rgba(147,51,234,0.03);
-  border: 2px solid rgba(147,51,234,0.1);
-  color: var(--text-primary);
-  min-height: 70px;
-  resize: vertical;
-  outline: none;
-}
-
-.pt-textarea:focus { border-color: rgba(168,85,247,0.4); box-shadow: 0 0 8px rgba(147,51,234,0.1); }
-
-.pt-radio-row {
+.ai-row {
   display: flex;
   gap: 16px;
 }
 
-.pt-radio {
+.ai-row .ai-block.half {
+  flex: 1;
+}
+
+.ai-block-title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-gold);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ai-block-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+.ai-block-text :deep(strong) {
+  color: var(--accent-gold);
+}
+
+.ai-block-text :deep(code) {
+  background: rgba(255, 200, 0, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.verdict-badge,
+.action-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.verdict-badge.danger,
+.action-badge.danger {
+  background: rgba(231, 76, 60, 0.12);
+  color: #E74C3C;
+  border: 1px solid rgba(231, 76, 60, 0.25);
+}
+
+.verdict-badge.warning,
+.action-badge.warning {
+  background: rgba(255, 140, 0, 0.12);
+  color: #FF8C00;
+  border: 1px solid rgba(255, 140, 0, 0.25);
+}
+
+.verdict-badge.success,
+.action-badge.success {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ECC71;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.action-badge.info {
+  background: rgba(74, 158, 255, 0.1);
+  color: #4A9EFF;
+  border: 1px solid rgba(74, 158, 255, 0.2);
+}
+
+.confidence-value {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--accent-gold);
+}
+
+/* ===== MODAL FOOTER ===== */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-btn.secondary {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.modal-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.modal-btn.danger {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.3);
+  color: #E74C3C;
+}
+
+.modal-btn.danger:hover {
+  background: rgba(231, 76, 60, 0.2);
+}
+
+.modal-btn.success {
+  background: rgba(46, 204, 113, 0.1);
+  border-color: rgba(46, 204, 113, 0.25);
+  color: #2ECC71;
+}
+
+.modal-btn.success:hover {
+  background: rgba(46, 204, 113, 0.18);
+}
+
+/* ===== FORM FIELDS ===== */
+.form-field {
+  margin-bottom: 16px;
+}
+
+.field-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.field-input,
+.field-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.field-input:focus,
+.field-textarea:focus {
+  border-color: rgba(255, 200, 0, 0.3);
+  box-shadow: 0 0 12px rgba(255, 200, 0, 0.08);
+}
+
+.field-input.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.field-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+.radio-option {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
   color: var(--text-primary);
   cursor: pointer;
 }
 
-.pt-radio input { accent-color: #a855f7; }
+.radio-option input {
+  accent-color: var(--accent-gold);
+}
 
 /* ===== TRANSITIONS ===== */
-.pt-modal-fade-enter-active { animation: ptFadeIn 0.22s ease-out; }
-.pt-modal-fade-leave-active { animation: ptFadeIn 0.16s ease-in reverse; }
+.modal-fade-enter-active {
+  animation: fadeIn 0.25s ease-out;
+}
 
-@keyframes ptFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-fade-leave-active {
+  animation: fadeIn 0.2s ease-in reverse;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.card-list-enter-active {
+  animation: cardIn 0.4s ease-out both;
+}
+
+.card-list-leave-active {
+  animation: cardOut 0.2s ease-in both;
+}
+
+@keyframes cardOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1199px) {
+  .grid-wrapper {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
 
 @media (max-width: 767px) {
-  .pt-search { width: 100%; }
-  .pt-grid { grid-template-columns: 1fr; }
-  .pt-info-grid { grid-template-columns: 1fr; }
-  .pt-modal-risk { flex-direction: column; }
+  .players-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .grid-wrapper {
+    grid-template-columns: 1fr;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-gauge-section {
+    flex-direction: column;
+  }
+
+  .tab-navigation {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pag-center {
+    justify-content: center;
+  }
 }
 </style>

@@ -22,8 +22,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(cheatWebSocketHandler, "/ws/cheats")
                 .setAllowedOrigins(
-                    "http://localhost:3000", "http://localhost:3001",
-                    "http://127.0.0.1:3000", "http://127.0.0.1:3001"
+                    "http://localhost:3000", "http://localhost:3001", "http://localhost:3030",
+                    "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3030"
                 );
     }
 }

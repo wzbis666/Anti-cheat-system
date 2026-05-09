@@ -1,20 +1,13 @@
 import { createI18n } from 'vue-i18n'
-import en from './locales/en'
 import zh from './locales/zh'
-
-const savedLocale = localStorage.getItem('locale') || 'zh'
+import en from './locales/en'
 
 const i18n = createI18n({
   legacy: false,
-  locale: savedLocale,
-  fallbackLocale: 'en',
-  messages: {
-    en,
-    zh
-  }
+  locale: localStorage.getItem('locale') || 'zh',
+  fallbackLocale: 'zh',
+  messages: { zh, en }
 })
-
-export default i18n
 
 export const setLocale = (locale) => {
   i18n.global.locale.value = locale
@@ -22,10 +15,6 @@ export const setLocale = (locale) => {
   document.documentElement.setAttribute('lang', locale)
 }
 
-export const getLocale = () => {
-  return i18n.global.locale.value
-}
+export const t = (key) => i18n.global.t(key)
 
-export const t = (key) => {
-  return i18n.global.t(key)
-}
+export default i18n

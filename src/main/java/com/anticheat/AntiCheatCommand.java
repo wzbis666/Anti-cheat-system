@@ -42,16 +42,16 @@ public class AntiCheatCommand implements CommandExecutor {
                 break;
             default:
                 sender.sendMessage(ChatColor.RED + "未知子命令: " + args[0]);
-                sender.sendMessage(ChatColor.YELLOW + "用法: /" + label + " [reload|status|clear <player>|cache]");
+                sender.sendMessage(ChatColor.YELLOW + "用法: /" + label
+                        + " [reload|status|clear <player>|cache]");
                 break;
         }
         return true;
     }
 
     private void handleReload(CommandSender sender) {
-        plugin.reloadConfig();
-        sender.sendMessage(ChatColor.GREEN + "[AntiCheat] 配置已重新加载");
-
+        plugin.reload();
+        sender.sendMessage(ChatColor.GREEN + "[AntiCheat] 配置已完整重新加载（含WebSocket重连）");
         plugin.getLogger().info("[AntiCheat] 配置已由 " + sender.getName() + " 重新加载");
     }
 
@@ -62,16 +62,36 @@ public class AntiCheatCommand implements CommandExecutor {
         sender.sendMessage(ChatColor.YELLOW + "后端地址: " + ChatColor.WHITE + plugin.getApiBaseUrl());
         sender.sendMessage(ChatColor.YELLOW + "缓存状态: "
                 + (plugin.getCacheManager().isCacheFresh() ? ChatColor.GREEN + "新鲜" : ChatColor.RED + "过期"));
-        sender.sendMessage(ChatColor.YELLOW + "封禁缓存: " + ChatColor.WHITE + plugin.getCacheManager().getBannedCount() + " 条");
-        sender.sendMessage(ChatColor.YELLOW + "白名单缓存: " + ChatColor.WHITE + plugin.getCacheManager().getWhitelistedCount() + " 条");
-        sender.sendMessage(ChatColor.YELLOW + "追踪玩家数: " + ChatColor.WHITE + plugin.getAntiCheatListener().getTrackedPlayerCount());
+        sender.sendMessage(ChatColor.YELLOW + "封禁缓存: " + ChatColor.WHITE
+                + plugin.getCacheManager().getBannedCount() + " 条");
+        sender.sendMessage(ChatColor.YELLOW + "白名单缓存: " + ChatColor.WHITE
+                + plugin.getCacheManager().getWhitelistedCount() + " 条");
+        sender.sendMessage(ChatColor.YELLOW + "追踪玩家数: " + ChatColor.WHITE
+                + plugin.getPlayerDataManager().getTrackedPlayerCount());
         sender.sendMessage(ChatColor.YELLOW + "调试模式: "
-                + (plugin.getConfig().getBoolean("debug", false) ? ChatColor.GREEN + "开启" : ChatColor.GRAY + "关闭"));
+                + (plugin.getConfigManager().isDebugEnabled() ? ChatColor.GREEN + "开启" : ChatColor.GRAY + "关闭"));
+        sender.sendMessage(ChatColor.YELLOW + "降级策略: " + ChatColor.WHITE
+                + plugin.getConfigManager().getFallbackStrategy());
 
-        boolean anyDetection = plugin.getConfig().getConfigurationSection("detection").getValues(false).values().stream()
-                .anyMatch(v -> Boolean.TRUE.equals(v));
-        sender.sendMessage(ChatColor.YELLOW + "检测状态: " + (anyDetection ? ChatColor.GREEN + "运行中" : ChatColor.RED + "全部关闭"));
+        ConfigManager config = plugin.getConfigManager();
+        boolean anyDetection = config.isAnyDetectionEnabled();
+        sender.sendMessage(ChatColor.YELLOW + "检测状态: "
+                + (anyDetection ? ChatColor.GREEN + "运行中" : ChatColor.RED + "全部关闭"));
+
+        sender.sendMessage(ChatColor.GOLD + "--- 检测器详情 ---");
+        sendDetectorStatus(sender, "飞行", plugin.getFlyDetector());
+        sendDetectorStatus(sender, "速度", plugin.getSpeedDetector());
+        sendDetectorStatus(sender, "自瞄", plugin.getAimbotDetector());
+        sendDetectorStatus(sender, "自动点击", plugin.getAutoClickDetector());
+        sendDetectorStatus(sender, "杀戮光环", plugin.getKillAuraDetector());
+        sendDetectorStatus(sender, "透视", plugin.getXrayDetector());
+
         sender.sendMessage(ChatColor.GOLD + "====================================");
+    }
+
+    private void sendDetectorStatus(CommandSender sender, String name, AbstractDetector detector) {
+        sender.sendMessage(ChatColor.YELLOW + "  " + name + ": "
+                + (detector.isEnabled() ? ChatColor.GREEN + "启用" : ChatColor.RED + "禁用"));
     }
 
     private void handleClear(CommandSender sender, String[] args) {
@@ -88,9 +108,11 @@ public class AntiCheatCommand implements CommandExecutor {
             return;
         }
 
-        plugin.getAntiCheatListener().clearPlayerData(target.getUniqueId());
-        sender.sendMessage(ChatColor.GREEN + "[AntiCheat] 已清除玩家 " + target.getName() + " 的检测数据");
-        plugin.getLogger().info("[AntiCheat] " + sender.getName() + " 清除了 " + target.getName() + " 的检测数据");
+        plugin.getPlayerDataManager().removeData(target.getUniqueId());
+        sender.sendMessage(ChatColor.GREEN + "[AntiCheat] 已清除玩家 "
+                + target.getName() + " 的检测数据");
+        plugin.getLogger().info("[AntiCheat] " + sender.getName()
+                + " 清除了 " + target.getName() + " 的检测数据");
     }
 
     private void handleCache(CommandSender sender) {
@@ -99,8 +121,10 @@ public class AntiCheatCommand implements CommandExecutor {
             plugin.getCacheManager().forceRefresh();
             Bukkit.getScheduler().runTask(plugin, () -> {
                 sender.sendMessage(ChatColor.GREEN + "[AntiCheat] 缓存已刷新");
-                sender.sendMessage(ChatColor.YELLOW + "封禁缓存: " + plugin.getCacheManager().getBannedCount() + " 条");
-                sender.sendMessage(ChatColor.YELLOW + "白名单缓存: " + plugin.getCacheManager().getWhitelistedCount() + " 条");
+                sender.sendMessage(ChatColor.YELLOW + "封禁缓存: "
+                        + plugin.getCacheManager().getBannedCount() + " 条");
+                sender.sendMessage(ChatColor.YELLOW + "白名单缓存: "
+                        + plugin.getCacheManager().getWhitelistedCount() + " 条");
             });
         });
     }

@@ -1,6 +1,6 @@
 export default {
   common: {
-    loading: 'Loading...', noData: 'No data', confirm: 'Confirm', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', save: 'Save', search: 'Search', actions: 'Actions', status: 'Status', time: 'Time', details: 'Details', view: 'View', close: 'Close', add: 'Add', enable: 'Enable', disable: 'Disable', all: 'All', success: 'Success', error: 'Error', warning: 'Warning', info: 'Info', logout: 'Logout'
+    loading: 'Loading...', noData: 'No data', confirm: 'Confirm', cancel: 'Cancel', delete: 'Delete', edit: 'Edit', save: 'Save', search: 'Search', actions: 'Actions', status: 'Status', time: 'Time', details: 'Details', view: 'View', close: 'Close', add: 'Add', enable: 'Enable', disable: 'Disable', all: 'All', success: 'Success', error: 'Error', warning: 'Warning', info: 'Info', logout: 'Logout', uuid: 'UUID', csv: 'Export CSV', view: 'View', delete: 'Delete', scanning: 'Scanning', reason: 'Reason', player: 'Player', entitiesIndexed: 'entities'
   },
   nav: {
     dashboard: 'Dashboard', players: 'Players', cheats: 'Cheat Logs', reports: 'Reports', punishments: 'Punishments', whitelist: 'Whitelist', settings: 'Settings', appeals: 'Appeals', audit: 'Audit Log', main: 'Main', management: 'Management'
@@ -17,7 +17,7 @@ export default {
     title: 'Player Management', subtitle: 'Manage all players', searchPlaceholder: 'Search players...', uuid: 'UUID', risk: 'Risk', kicks: 'Kicks', lastSeen: 'Last Seen', playerDetails: 'Player Details', basicInfo: 'Basic Info', cheatLogs: 'Cheat Logs', punishments: 'Punishments', riskScore: 'Risk Score', kickCount: 'Kick Count', banStatus: 'Ban Status', banned: 'Banned', active: 'Active', noCheatRecords: 'No cheat records', noPunishmentRecords: 'No punishment records', banPlayer: 'Ban Player', unban: 'Unban', confirmDelete: 'Are you sure you want to delete this player?', low: 'Low', medium: 'Medium', high: 'High'
   },
   cheats: {
-    title: 'Cheat Logs', subtitle: 'All cheat detection records', allTypes: 'All Types', allSeverity: 'All Severity', severityLow: 'Low', severityMedium: 'Medium', severityHigh: 'High', severityCritical: 'Critical', cheatType: 'Cheat Type', severity: 'Severity', searchPlaceholder: 'Search player or type...', distributionChart: 'Cheat Type Distribution', detailTitle: 'Cheat Detail', confirmDelete: 'Are you sure you want to delete this record?', flying: 'Flying', speed: 'Speed', autoClick: 'Auto Click', killAura: 'Kill Aura', detectedAt: 'Detected At', noRecords: 'No cheat records found', records: 'records', first: 'First', last: 'Last', prev: 'Prev', next: 'Next'
+    title: 'Cheat Logs', subtitle: 'All cheat detection records', allTypes: 'All Types', allSeverity: 'All Severity', severityLow: 'Low', severityMedium: 'Medium', severityHigh: 'High', severityCritical: 'Critical', cheatType: 'Cheat Type', severity: 'Severity', searchPlaceholder: 'Search player or type...', distributionChart: 'Cheat Type Distribution', detailTitle: 'Cheat Detail', confirmDelete: 'Are you sure you want to delete this record?', flying: 'Flying', speed: 'Speed', autoClick: 'Auto Click', killAura: 'Kill Aura', detectedAt: 'Detected At', noRecords: 'No cheat records found', records: 'records', first: 'First', last: 'Last', prev: 'Prev', next: 'Next', scanning: 'SCANNING', noDetections: 'NO DETECTIONS', view: 'VIEW', delete: 'DEL'
   },
   reports: {
     title: 'Reports', subtitle: 'Handle player reports', pending: 'Pending', allStatus: 'All Status', resolved: 'Resolved', rejected: 'Rejected', reporter: 'Reporter', reported: 'Reported', type: 'Type', reason: 'Reason', noReports: 'No reports found', handleReport: 'Handle Report', reportDetails: 'Report Details', result: 'Result', confirmViolation: 'Confirm Violation', rejectReport: 'Reject Report', notes: 'Notes', banThisPlayer: 'Ban this player', banReason: 'Ban Reason', handledBy: 'Handled By', handledAt: 'Handled At', cheating: 'Cheating', hacking: 'Hacking', griefing: 'Griefing', harassment: 'Harassment', other: 'Other'
@@ -29,24 +29,44 @@ export default {
     title: 'Whitelist', subtitle: 'Trusted players list', addToWhitelist: 'Add to Whitelist', addedBy: 'Added By', addedAt: 'Added At', noEntries: 'No whitelist entries', whitelistReason: 'Reason for whitelisting', confirmDisable: 'Disable whitelist for', confirmEnable: 'Enable whitelist for'
   },
   settings: {
-    title: 'System Settings', save: 'Save Settings', saveSuccess: 'Settings saved', syncToPlugin: 'Sync to Plugin', syncSuccess: 'Synced to plugin', reset: 'Reset Defaults', resetSuccess: 'Reset to defaults',
-    flyDetection: 'Fly Detection', enableFlyDetection: 'Enable Fly Detection', enableFlyDetectionDesc: 'Detect if players use fly hacks',
-    speedDetection: 'Speed Detection', enableSpeedDetection: 'Enable Speed Detection', enableSpeedDetectionDesc: 'Detect if players use speed hacks',
-    killAuraDetection: 'KillAura Detection', enableKillAuraDetection: 'Enable KillAura Detection', enableKillAuraDetectionDesc: 'Detect if players use KillAura',
-    autoClickDetection: 'AutoClick Detection', enableAutoClickDetection: 'Enable AutoClick Detection', enableAutoClickDetectionDesc: 'Detect if players use auto-clickers',
-    triggerThreshold: 'Trigger Threshold', triggerThresholdDesc: 'Trigger punishment when violations reach this value',
-    autoKick: 'Auto Kick', autoKickDesc: 'Automatically kick player when threshold is reached',
-    cpsThreshold: 'CPS Threshold', cpsThresholdDesc: 'Trigger when clicks per second exceed this value',
-    punishmentSettings: 'Punishment Settings', enableAutoBan: 'Enable Auto Ban', enableAutoBanDesc: 'Auto ban when risk score reaches threshold',
-    autoBanThreshold: 'Auto Ban Threshold', autoBanThresholdDesc: 'Auto ban when risk score reaches this value',
-    banType: 'Ban Type', banTypeDesc: 'Type of automatic ban', permanentBan: 'Permanent Ban', temporaryBan: 'Temporary Ban',
-    tempBanDuration: 'Temp Ban Duration', tempBanDurationDesc: 'Duration of temporary ban in days', days: 'days',
-    enableAutoKick: 'Enable Auto Kick', enableAutoKickDesc: 'Auto kick when threshold is reached',
-    autoKickThreshold: 'Auto Kick Threshold', autoKickThresholdDesc: 'Kick when violations reach this value',
-    messageSettings: 'Message Settings', warningMessage: 'Warning Message', warningMessageDesc: 'Message sent to player when cheat detected',
-    kickMessage: 'Kick Message', kickMessageDesc: 'Message shown when player is kicked', banMessage: 'Ban Message', banMessageDesc: 'Message shown when player is banned',
-    notificationSettings: 'Notification Settings', alertSound: 'Alert Sound', alertSoundDesc: 'Play sound on high severity alerts',
-    onlyHighSeverity: 'High Severity Only', onlyHighSeverityDesc: 'Only notify on high severity alerts'
+    title: 'System Settings', subtitle: 'Configure system parameters', save: 'Save Settings', reset: 'Reset Settings', syncToPlugin: 'Sync to Plugin', syncTitle: 'Sync Configuration', syncDesc: 'Sync settings to game server plugin',
+    saveSuccess: 'Settings saved', syncSuccess: 'Sync successful', resetSuccess: 'Reset to default settings',
+
+    detectionTitle: 'Detection Settings', detectionDesc: 'Configure cheat detection parameters',
+    enableFlyingDetection: 'Flying Detection', enableFlyingDetectionDesc: 'Enable flying cheat detection',
+    enableSpeedDetection: 'Speed Detection', enableSpeedDetectionDesc: 'Enable speed cheat detection',
+    enableKillAuraDetection: 'Kill Aura Detection', enableKillAuraDetectionDesc: 'Enable kill aura detection',
+    enableAutoClickDetection: 'Auto Click Detection', enableAutoClickDetectionDesc: 'Enable auto click detection',
+    detectionThreshold: 'Detection Threshold', detectionThresholdDesc: 'Number of detections needed to trigger warning',
+    alertCooldown: 'Alert Cooldown', alertCooldownDesc: 'Minimum interval between alerts for same player(sec)',
+
+    punishmentTitle: 'Punishment Settings', punishmentDesc: 'Configure automatic punishment behavior',
+    autoBanEnabled: 'Auto Ban', autoBanEnabledDesc: 'Automatically ban players when cheating detected',
+    banThreshold: 'Ban Threshold', banThresholdDesc: 'Number of detections needed to trigger ban',
+    defaultBanDuration: 'Default Ban Duration', defaultBanDurationDesc: 'Default duration for automatic bans',
+    enableTempBan: 'Temporary Ban', enableTempBanDesc: 'Use temporary ban for first offense',
+
+    notificationTitle: 'Notification Settings', notificationDesc: 'Configure alert and notification preferences',
+    enableSoundAlert: 'Sound Alert', enableSoundAlertDesc: 'Play sound when cheat detected',
+    enableDesktopAlert: 'Desktop Notification', enableDesktopAlertDesc: 'Show desktop notification on detection',
+    highRiskAlert: 'High Risk Alert', highRiskAlertDesc: 'Extra alerts for high-risk players',
+    reportAlert: 'Report Alert', reportAlertDesc: 'Notify when new report received',
+
+    systemTitle: 'System Settings', systemDesc: 'Configure server and system preferences',
+    autoRefresh: 'Auto Refresh', autoRefreshDesc: 'Automatically refresh data statistics',
+    refreshInterval: 'Refresh Interval', refreshIntervalDesc: 'Auto refresh interval in seconds',
+    maxLogEntries: 'Max Log Entries', maxLogEntriesDesc: 'Maximum number of log entries to keep',
+    language: 'Interface Language', languageDesc: 'System interface display language',
+
+    advancedTitle: 'Advanced Settings', advancedDesc: 'Advanced configuration options',
+    enableDebug: 'Debug Mode', enableDebugDesc: 'Enable debug log output',
+    logLevel: 'Log Level', logLevelDesc: 'Set log output level',
+    apiTimeout: 'API Timeout', apiTimeoutDesc: 'API request timeout in seconds',
+    maxConnections: 'Max Connections', maxConnectionsDesc: 'Maximum WebSocket connections allowed',
+
+    '1小时': '1 Hour', '6小时': '6 Hours', '24小时': '24 Hours', '7天': '7 Days', '30天': '30 Days', '永久': 'Permanent',
+    '中文': 'Chinese', 'English': 'English',
+    'Debug': 'Debug', 'Info': 'Info', 'Warn': 'Warn', 'Error': 'Error'
   },
   profile: {
     title: 'Profile', subtitle: 'Account settings', profile: 'Profile', password: 'Password', currentPassword: 'Current Password', newPassword: 'New Password', confirmNewPassword: 'Confirm New Password', changePassword: 'Change Password', saveChanges: 'Save Changes', saving: 'Saving...', changing: 'Changing...', createdAt: 'Created At', lastLogin: 'Last Login', superAdmin: 'Super Admin', admin: 'Admin'
@@ -57,10 +77,16 @@ export default {
   appeals: {
     title: 'Appeals', pending: 'Pending', approved: 'Approved', rejected: 'Rejected',
     approve: 'Approve', reject: 'Reject', confirmApprove: 'Approve this appeal? The punishment will be lifted.',
-    confirmReject: 'Reject this appeal?', noAppeals: 'No appeals', response: 'Admin Response'
+    confirmReject: 'Reject this appeal?', noAppeals: 'No appeals', response: 'Admin Response',
+    reason: '> reason', adminResponse: 'Admin response...',
+    PENDING: 'PENDING', APPROVED: 'APPROVED', REJECTED: 'REJECTED'
   },
   audit: {
-    title: 'Audit Log', noRecords: 'No audit records'
+    title: 'Audit Log', noRecords: 'No audit records',
+    records: 'records',
+    BAN: 'BAN', UNBAN: 'UNBAN', DELETE_PLAYER: 'DELETE_PLAYER', DELETE_CHEAT: 'DELETE_CHEAT',
+    HANDLE_REPORT: 'HANDLE_REPORT', WHITELIST_ADD: 'WHITELIST_ADD', WHITELIST_REMOVE: 'WHITELIST_REMOVE',
+    SETTINGS_UPDATE: 'SETTINGS_UPDATE', LOGIN: 'LOGIN', LOGOUT: 'LOGOUT', REGISTER: 'REGISTER'
   },
   ai: {
     assistant: 'AI Assistant', online: 'Online', offline: 'Offline', welcome: 'Hello! I am the anti-cheat AI assistant. I can help you analyze player behavior, handle reports, and answer system questions.', inputPlaceholder: 'Type your question...', disabledPlaceholder: 'AI is not enabled. Please configure API Key in settings', analyze: 'AI Analyze', analysisResult: 'AI Analysis Result', verdict: 'Verdict', confidence: 'Confidence', suggestedAction: 'Suggested Action', reasoning: 'Reasoning', error: 'AI analysis failed', networkError: 'Network error, please check AI service config', clearChat: 'Clear Chat', quickQ1: 'Who are the high-risk players recently?', quickQ2: 'Analyze today\'s detection trends', quickQ3: 'How does fly cheat detection work?', dashboardAnalysis: 'AI Dashboard Analysis', comprehensiveAnalysis: 'Comprehensive Analysis', riskLevel: 'Risk Level', suggestions: 'Suggestions', analyzing: 'AI is analyzing...', clickToAnalyze: 'Click the tab above to start AI analysis', evaluateBan: 'AI Evaluate', banEvaluation: 'AI Ban Evaluation', noPlayerData: 'Cannot get player data'

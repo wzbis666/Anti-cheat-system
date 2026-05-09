@@ -66,55 +66,58 @@ export const authApi = {
 }
 
 export const playerApi = {
-  getAll: () => api.get('/player/all'),
-  getByUuid: (uuid) => api.get(`/player/${uuid}`),
-  delete: (id) => api.delete(`/player/${id}`),
-  updateRiskScore: (id, score) => api.put(`/player/${id}/risk`, { score })
+  getAll: (config) => api.get('/player/all', config),
+  getByUuid: (uuid, config) => api.get(`/player/${uuid}`, config),
+  delete: (id, config) => api.delete(`/player/${id}`, config),
+  updateRiskScore: (id, score, config) => api.put(`/player/${id}/risk`, { score }, config)
 }
 
 export const cheatApi = {
-  getAll: () => api.get('/cheat/all'),
-  getByPage: (page, size, sortBy, sortDir) => api.get('/cheat/page', { params: { page, size, sortBy, sortDir } }),
-  getByPlayerUuid: (uuid) => api.get(`/cheat/player/${uuid}`),
-  getByType: (type, page, size) => api.get(`/cheat/type/${type}`, { params: { page, size } }),
-  delete: (id) => api.delete(`/cheat/${id}`)
+  getAll: (params, config) => api.get('/cheat/all', { params, ...config }),
+  getByPage: (page, size, sortBy, sortDir, config) => api.get('/cheat/page', { params: { page, size, sortBy, sortDir }, ...config }),
+  getByPlayerUuid: (uuid, config) => api.get(`/cheat/player/${uuid}`, config),
+  getByType: (type, page, size, config) => api.get(`/cheat/type/${type}`, { params: { page, size }, ...config }),
+  delete: (id, config) => api.delete(`/cheat/${id}`, config)
 }
 
 export const reportApi = {
-  getAll: () => api.get('/report/all'),
-  getPendingCount: () => api.get('/report/count/pending'),
-  handle: (id, data) => api.post(`/report/handle/${id}`, data),
-  delete: (id) => api.delete(`/report/${id}`)
+  getAll: (config) => api.get('/report/all', config),
+  getPendingCount: (config) => api.get('/report/count/pending', config),
+  handle: (id, data, config) => api.post(`/report/handle/${id}`, data, config),
+  delete: (id, config) => api.delete(`/report/${id}`, config)
 }
 
 export const punishmentApi = {
-  getAll: () => api.get('/punishment/all'),
-  ban: (data) => api.post('/punishment/ban', data),
-  unban: (id) => api.post(`/punishment/unban/${id}`, {}),
-  delete: (id) => api.delete(`/punishment/${id}`),
-  getByUuid: (uuid) => api.get(`/punishment/uuid/${uuid}`),
-  checkBanStatus: (uuid) => api.get(`/punishment/check/${uuid}`)
+  getAll: (config) => api.get('/punishment/all', config),
+  ban: (data, config) => api.post('/punishment/ban', data, config),
+  unban: (id, config) => api.post(`/punishment/unban/${id}`, {}, config),
+  delete: (id, config) => api.delete(`/punishment/${id}`, config),
+  getByUuid: (uuid, config) => api.get(`/punishment/uuid/${uuid}`, config),
+  checkBanStatus: (uuid, config) => api.get(`/punishment/check/${uuid}`, config)
 }
 
 export const whitelistApi = {
-  getAll: () => api.get('/whitelist/all'),
-  add: (data) => api.post('/whitelist/add', data),
-  remove: (uuid) => api.post(`/whitelist/remove/${uuid}`),
-  delete: (id) => api.delete(`/whitelist/${id}`),
-  check: (uuid) => api.get(`/whitelist/check/${uuid}`)
+  getAll: (config) => api.get('/whitelist/all', config),
+  add: (data, config) => api.post('/whitelist/add', data, config),
+  remove: (uuid, config) => api.post(`/whitelist/remove/${uuid}`, {}, config),
+  delete: (id, config) => api.delete(`/whitelist/${id}`, config),
+  check: (uuid, config) => api.get(`/whitelist/check/${uuid}`, config)
 }
 
 export const statsApi = {
-  getOverview: () => api.get('/stats/overview'),
-  getCheatTypes: () => api.get('/stats/cheat-types'),
-  getRecent: (hours) => api.get('/stats/recent', { params: { hours } })
+  getOverview: (config) => api.get('/stats/overview', config),
+  getCheatTypes: (config) => api.get('/stats/cheat-types', config),
+  getRecent: (hours, config) => api.get('/stats/recent', { params: { hours }, ...config })
 }
 
 export const settingsApi = {
   getAll: () => api.get('/settings'),
   get: (key) => api.get(`/settings/${key}`),
   save: (key, value) => api.put(`/settings/${key}`, { value }),
-  batchSave: (settingsMap) => api.put('/settings', settingsMap)
+  batchSave: (settingsMap) => api.put('/settings', settingsMap),
+  sync: () => api.post('/settings/sync'),
+  getPluginSettings: () => api.get('/settings/plugin'),
+  savePluginSettings: (settingsMap) => api.put('/settings/plugin', settingsMap)
 }
 
 export const aiApi = {

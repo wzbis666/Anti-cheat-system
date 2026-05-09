@@ -1,62 +1,90 @@
 <template>
-  <div class="wl-terminal">
-    <div class="wl-header">
-      <div class="wl-prompt">
-        <span class="wl-prompt-sign">root@acs:~$</span>
-        <span class="wl-prompt-cmd">./whitelist.query --all</span>
-        <span class="wl-cursor">_</span>
+  <div class="whitelist-container">
+    <div class="page-header">
+      <div class="header-left">
+        <h2 class="page-title">{{ t('nav.whitelist') }}</h2>
+        <span class="entry-count">{{ whitelist.length }} {{ t('whitelist.entries') }}</span>
       </div>
-      <button class="wl-add-btn" @click="showAddDialog = true">
-        <span class="wl-add-icon">+</span> ADD TO WHITELIST
+
+      <button class="add-whitelist-btn" @click="showAddDialog = true">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        {{ t('whitelist.addToWhitelist') }}
       </button>
     </div>
 
-    <div class="wl-table-panel">
-      <div v-if="loading" class="wl-loading">
-        <div class="wl-load-bar"><div class="wl-load-bar-fill"></div></div>
-        <span class="wl-load-text">QUERYING <span class="wl-load-dots"><span>.</span><span>.</span><span>.</span></span></span>
+    <div class="table-container">
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <span>{{ t('common.loading') }}...</span>
       </div>
 
-      <div v-else-if="whitelist.length === 0" class="wl-empty">
-        <div class="wl-empty-icon">⊡</div>
-        <span>NO WHITELIST ENTRIES</span>
+      <div v-else-if="whitelist.length === 0" class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" class="empty-icon">
+          <path fill="currentColor" d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>
+        </svg>
+        <p>{{ t('whitelist.noEntries') }}</p>
       </div>
 
-      <div v-else class="wl-table-wrap">
-        <table class="wl-table">
+      <div v-else class="table-wrapper">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>$ player</th>
-              <th>$ uuid</th>
-              <th>$ reason</th>
-              <th>$ added_by</th>
-              <th>$ added_at</th>
-              <th>$ status</th>
-              <th>$ actions</th>
+              <th>{{ t('common.player') }}</th>
+              <th>{{ t('common.uuid') }}</th>
+              <th>{{ t('common.reason') }}</th>
+              <th>{{ t('whitelist.addedBy') }}</th>
+              <th>{{ t('whitelist.addedAt') }}</th>
+              <th>{{ t('whitelist.status') }}</th>
+              <th>{{ t('common.actions') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in whitelist" :key="item.id" :class="{ 'wl-row-inactive': !item.active }">
+            <tr
+              v-for="item in whitelist"
+              :key="item.id"
+              :class="['data-row', { inactive: !item.active }]"
+            >
               <td>
-                <div class="wl-player-cell">
-                  <img :src="`https://mc-heads.net/avatar/${item.playerName}/32`" class="wl-avatar" />
-                  <span>{{ item.playerName }}</span>
+                <div class="player-cell">
+                  <img
+                    :src="`https://mc-heads.net/avatar/${item.playerName}/40`"
+                    :alt="item.playerName"
+                    class="player-avatar"
+                  />
+                  <span class="player-name">{{ item.playerName }}</span>
                 </div>
               </td>
-              <td class="wl-uuid-cell">{{ item.uuid }}</td>
-              <td class="wl-reason-cell">{{ item.reason }}</td>
+              <td class="uuid-cell">{{ item.uuid }}</td>
+              <td class="reason-cell">{{ item.reason }}</td>
               <td>{{ item.addedBy || '-' }}</td>
-              <td class="wl-time-cell">{{ formatTime(item.addedTime) }}</td>
+              <td class="time-cell">{{ formatTime(item.addedTime) }}</td>
               <td>
-                <span :class="['wl-tag', item.active ? 'wl-tag-green' : 'wl-tag-purple']">
+                <span :class="['status-badge', item.active ? 'active' : 'inactive']">
                   {{ item.active ? t('players.active') : t('common.disable') }}
                 </span>
               </td>
               <td>
-                <div class="wl-actions">
-                  <button v-if="item.active" class="wl-act disable" @click="handleRemove(item)">{{ t('common.disable') }}</button>
-                  <button v-else class="wl-act enable" @click="handleEnable(item)">{{ t('common.enable') }}</button>
-                  <button class="wl-act delete" @click="handleDelete(item.id)">DEL</button>
+                <div class="action-group">
+                  <button
+                    v-if="item.active"
+                    class="action-btn disable-btn"
+                    @click="handleRemove(item)"
+                  >
+                    {{ t('common.disable') }}
+                  </button>
+                  <button
+                    v-else
+                    class="action-btn enable-btn"
+                    @click="handleEnable(item)"
+                  >
+                    {{ t('common.enable') }}
+                  </button>
+                  <button
+                    class="action-btn delete-btn"
+                    @click="handleDelete(item.id)"
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -65,30 +93,51 @@
       </div>
     </div>
 
-    <transition name="wl-modal-fade">
-      <div v-if="showAddDialog" class="wl-overlay" @click.self="showAddDialog = false">
-        <div class="wl-modal">
-          <div class="wl-modal-top">
-            <span class="wl-modal-cmd">> whitelist.add</span>
-            <button class="wl-modal-close" @click="showAddDialog = false">┼</button>
+    <!-- Add Dialog -->
+    <transition name="modal-fade">
+      <div v-if="showAddDialog" class="modal-overlay" @click.self="showAddDialog = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 class="modal-title">{{ t('whitelist.addToWhitelist') }}</h3>
+            <button class="close-btn" @click="showAddDialog = false">×</button>
           </div>
-          <div class="wl-modal-body">
-            <div class="wl-field">
-              <label class="wl-field-label">$ player.name</label>
-              <input v-model="addForm.playerName" :placeholder="t('punishments.playerName')" class="wl-input" />
+
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">{{ t('punishments.playerName') }}</label>
+              <input
+                v-model="addForm.playerName"
+                :placeholder="t('punishments.playerName')"
+                class="form-input"
+              />
             </div>
-            <div class="wl-field">
-              <label class="wl-field-label">$ player.uuid</label>
-              <input v-model="addForm.uuid" :placeholder="t('punishments.playerUUID')" class="wl-input" />
+
+            <div class="form-group">
+              <label class="form-label">{{ t('punishments.playerUUID') }}</label>
+              <input
+                v-model="addForm.uuid"
+                :placeholder="t('punishments.playerUUID')"
+                class="form-input"
+              />
             </div>
-            <div class="wl-field">
-              <label class="wl-field-label">$ reason</label>
-              <textarea v-model="addForm.reason" :placeholder="t('whitelist.whitelistReason')" class="wl-textarea"></textarea>
+
+            <div class="form-group">
+              <label class="form-label">{{ t('whitelist.reason') }}</label>
+              <textarea
+                v-model="addForm.reason"
+                :placeholder="t('whitelist.whitelistReason')"
+                class="form-textarea"
+              ></textarea>
             </div>
           </div>
-          <div class="wl-modal-actions">
-            <button class="wl-btn-cancel" @click="showAddDialog = false">{{ t('common.cancel') }}</button>
-            <button class="wl-btn-confirm" @click="handleAdd" :disabled="adding">{{ adding ? t('common.loading') : t('common.add') }}</button>
+
+          <div class="modal-footer">
+            <button class="btn secondary" @click="showAddDialog = false">
+              {{ t('common.cancel') }}
+            </button>
+            <button class="btn primary" @click="handleAdd" :disabled="adding">
+              {{ adding ? '...' : t('common.add') }}
+            </button>
           </div>
         </div>
       </div>
@@ -97,7 +146,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { whitelistApi } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -107,20 +156,29 @@ export default {
   name: 'Whitelist',
   setup() {
     const { t } = useI18n()
-    
+
     const whitelist = ref([])
     const loading = ref(false)
     const showAddDialog = ref(false)
     const adding = ref(false)
-    const addForm = ref({ playerName: '', uuid: '', reason: '' })
+    const addForm = ref({
+      playerName: '',
+      uuid: '',
+      reason: ''
+    })
+
+    let controller = null
 
     const fetchWhitelist = async () => {
       loading.value = true
       try {
-        whitelist.value = await whitelistApi.getAll()
+        controller = new AbortController()
+        whitelist.value = await whitelistApi.getAll({ signal: controller.signal })
       } catch (error) {
-        console.error('Failed to fetch whitelist:', error)
-        ElMessage.error(t('common.error'))
+        if (error.name !== 'AbortError') {
+          console.error('Failed to fetch whitelist:', error)
+          ElMessage.error(t('common.error'))
+        }
       } finally {
         loading.value = false
       }
@@ -136,7 +194,9 @@ export default {
         ElMessage.warning(t('common.warning'))
         return
       }
+
       adding.value = true
+
       try {
         await whitelistApi.add(addForm.value)
         ElMessage.success(t('common.success'))
@@ -154,7 +214,15 @@ export default {
 
     const handleRemove = async (row) => {
       try {
-        await ElMessageBox.confirm(`${t('whitelist.confirmDisable')} ${row.playerName}?`, t('common.confirm'), { confirmButtonText: t('common.disable'), cancelButtonText: t('common.cancel'), type: 'warning' })
+        await ElMessageBox.confirm(
+          `${t('whitelist.confirmDisable')} ${row.playerName}?`,
+          t('common.confirm'),
+          {
+            confirmButtonText: t('common.disable'),
+            cancelButtonText: t('common.cancel'),
+            type: 'warning'
+          }
+        )
         await whitelistApi.remove(row.uuid)
         ElMessage.success(t('common.success'))
         fetchWhitelist()
@@ -169,7 +237,11 @@ export default {
 
     const handleEnable = async (row) => {
       try {
-        await whitelistApi.add({ playerName: row.playerName, uuid: row.uuid, reason: row.reason || 'Re-enabled' })
+        await whitelistApi.add({
+          playerName: row.playerName,
+          uuid: row.uuid,
+          reason: row.reason || 'Re-enabled'
+        })
         ElMessage.success(t('common.success'))
         fetchWhitelist()
         EventBus.emit(Events.STATS_CHANGED)
@@ -181,7 +253,15 @@ export default {
 
     const handleDelete = async (id) => {
       try {
-        await ElMessageBox.confirm(t('common.confirm'), t('common.delete'), { confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel'), type: 'warning' })
+        await ElMessageBox.confirm(
+          t('common.confirm'),
+          t('common.delete'),
+          {
+            confirmButtonText: t('common.delete'),
+            cancelButtonText: t('common.cancel'),
+            type: 'warning'
+          }
+        )
         await whitelistApi.delete(id)
         ElMessage.success(t('common.success'))
         fetchWhitelist()
@@ -194,137 +274,479 @@ export default {
       }
     }
 
-    onMounted(() => { fetchWhitelist() })
+    onMounted(() => {
+      fetchWhitelist()
+    })
+
+    onUnmounted(() => {
+      if (controller) {
+        controller.abort()
+      }
+    })
 
     return {
-      whitelist, loading, showAddDialog, adding, addForm,
-      formatTime, handleAdd, handleRemove, handleEnable, handleDelete, t
+      whitelist,
+      loading,
+      showAddDialog,
+      adding,
+      addForm,
+      formatTime,
+      handleAdd,
+      handleRemove,
+      handleEnable,
+      handleDelete,
+      t
     }
   }
 }
 </script>
 
 <style scoped>
-.wl-terminal { display: flex; flex-direction: column; gap: 20px; }
+.whitelist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-.wl-header { display: flex; align-items: center; justify-content: space-between; }
-.wl-prompt { font-family: var(--font-mono); font-size: 13px; }
-.wl-prompt-sign { color: #06b6d4; }
-.wl-prompt-cmd { color: #c084fc; margin-left: 8px; }
-.wl-cursor { color: #a855f7; animation: wlBlink 1s step-end infinite; }
-@keyframes wlBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+/* ===== HEADER ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.wl-add-btn {
-  display: flex; align-items: center; gap: 6px;
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.page-title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.entry-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.add-whitelist-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 10px 20px;
-  font-family: var(--font-mono); font-size: 11px; font-weight: 700;
-  background: linear-gradient(180deg, #a855f7, #7c3aed);
-  border: 2px solid rgba(147,51,234,0.4); border-radius: 2px;
-  color: #fff; cursor: pointer; transition: all 0.2s ease;
-  letter-spacing: 1px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  border-radius: var(--radius-sm);
+  color: #2ECC71;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
-.wl-add-btn:hover { background: linear-gradient(180deg, #9333ea, #6d28d9); border-color: rgba(168,85,247,0.6); box-shadow: 0 0 16px rgba(147,51,234,0.35); }
-.wl-add-icon { font-size: 16px; font-weight: 700; }
 
-/* TABLE */
-.wl-table-panel {
-  background: rgba(6,2,16,0.7);
-  border: 2px solid rgba(147,51,234,0.18); border-radius: 2px;
+.add-whitelist-btn:hover {
+  background: rgba(46, 204, 113, 0.2);
+  border-color: rgba(46, 204, 113, 0.5);
+  box-shadow: 0 0 16px rgba(46, 204, 113, 0.15);
+}
+
+/* ===== TABLE CONTAINER ===== */
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
-.wl-table-wrap { overflow-x: auto; }
-.wl-table { width: 100%; border-collapse: collapse; }
-.wl-table thead th {
-  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-  color: #06b6d4; text-align: left; padding: 12px 14px;
-  border-bottom: 2px solid rgba(147,51,234,0.18); text-transform: uppercase;
-  letter-spacing: 0.5px; background: rgba(10,4,22,0.6);
+
+.loading-state,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 14px;
 }
-.wl-table tbody td {
-  padding: 12px 14px; font-size: 13px;
-  border-bottom: 1px solid rgba(147,51,234,0.06); color: var(--text-primary);
+
+.empty-icon {
+  opacity: 0.2;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent-gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.table-wrapper {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead th {
+  padding: 14px 18px;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table tbody td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.2s ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 200, 0, 0.03);
+}
+
+.data-table tbody tr.inactive {
+  opacity: 0.55;
+}
+
+.data-table tbody tr.inactive:hover {
+  opacity: 0.75;
+}
+
+.player-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.player-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  border: 2px solid var(--border-color);
+}
+
+.player-name {
+  font-weight: 600;
+}
+
+.uuid-cell {
   font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
 }
-.wl-table tbody tr { transition: background 0.15s ease; }
-.wl-table tbody tr:hover { background: rgba(147,51,234,0.06); }
-.wl-row-inactive { opacity: 0.55; }
-.wl-player-cell { display: flex; align-items: center; gap: 10px; }
-.wl-avatar { width: 32px; height: 32px; border-radius: 2px; image-rendering: pixelated; border: 2px solid rgba(147,51,234,0.25); }
-.wl-uuid-cell { font-size: 11px; color: var(--text-muted); }
-.wl-reason-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wl-time-cell { font-size: 12px; color: var(--text-muted); }
 
-.wl-tag {
-  display: inline-block; padding: 3px 10px; font-size: 10px; font-weight: 700;
-  border-radius: 2px; text-transform: uppercase; letter-spacing: 0.5px;
-  font-family: var(--font-mono);
-}
-.wl-tag-green { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
-.wl-tag-purple { background: rgba(168,85,247,0.12); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); }
-
-.wl-actions { display: flex; gap: 6px; }
-.wl-act {
-  padding: 4px 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-  border-radius: 2px; cursor: pointer; transition: all 0.15s ease; border: 1px solid;
-}
-.wl-act.enable { background: rgba(16,185,129,0.1); color: #10b981; border-color: rgba(16,185,129,0.25); }
-.wl-act.enable:hover { background: rgba(16,185,129,0.22); }
-.wl-act.disable { background: rgba(245,158,11,0.1); color: #f59e0b; border-color: rgba(245,158,11,0.25); }
-.wl-act.disable:hover { background: rgba(245,158,11,0.22); }
-.wl-act.delete { background: rgba(255,61,90,0.1); color: #ff3d5a; border-color: rgba(255,61,90,0.25); }
-.wl-act.delete:hover { background: rgba(255,61,90,0.22); }
-
-/* LOADING & EMPTY */
-.wl-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 60px 20px; }
-.wl-load-bar { width: 200px; height: 3px; background: rgba(147,51,234,0.1); border-radius: 2px; overflow: hidden; }
-.wl-load-bar-fill { height: 100%; width: 40%; background: linear-gradient(90deg, transparent, #a855f7, #06b6d4, #a855f7, transparent); animation: wlLoadScan 1.6s ease-in-out infinite; border-radius: 2px; }
-@keyframes wlLoadScan { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
-.wl-load-text { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); letter-spacing: 2px; }
-.wl-load-dots span { animation: wlDotFade 1.2s infinite; }
-.wl-load-dots span:nth-child(2) { animation-delay: 0.2s; }
-.wl-load-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes wlDotFade { 0%,100%{opacity:0.2} 50%{opacity:1} }
-.wl-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 20px; }
-.wl-empty-icon { font-size: 40px; color: rgba(168,85,247,0.3); }
-.wl-empty span { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); letter-spacing: 2px; }
-
-/* MODAL */
-.wl-overlay {
-  position: fixed; inset: 0; background: rgba(4,0,10,0.85); backdrop-filter: blur(10px);
-  display: flex; align-items: center; justify-content: center; z-index: 1000;
-}
-.wl-modal {
-  background: rgba(8,3,20,0.98); border: 2px solid rgba(147,51,234,0.3); border-radius: 2px;
-  width: 100%; max-width: 420px; box-shadow: 0 14px 52px rgba(0,0,0,0.75), 0 0 40px rgba(147,51,234,0.12);
+.reason-cell {
+  max-width: 180px;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.wl-modal-top { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 2px solid rgba(147,51,234,0.18); }
-.wl-modal-cmd { font-family: var(--font-mono); font-size: 12px; color: #06b6d4; }
-.wl-modal-close { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: rgba(255,61,90,0.08); border: 2px solid rgba(255,61,90,0.2); border-radius: 2px; color: var(--text-muted); font-size: 16px; cursor: pointer; transition: all 0.15s ease; }
-.wl-modal-close:hover { background: rgba(255,61,90,0.2); color: #ff3d5a; }
-.wl-modal-body { padding: 20px; }
-.wl-field { margin-bottom: 18px; }
-.wl-field-label { display: block; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: #06b6d4; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-.wl-input {
-  width: 100%; padding: 10px 14px; font-family: var(--font-mono); font-size: 13px;
-  background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.15); border-radius: 2px;
-  color: var(--text-primary); transition: all 0.2s ease;
-}
-.wl-input:focus { outline: none; border-color: rgba(168,85,247,0.4); box-shadow: 0 0 10px rgba(147,51,234,0.1); }
-.wl-textarea {
-  width: 100%; padding: 10px 14px; font-family: var(--font-mono); font-size: 13px;
-  background: rgba(147,51,234,0.05); border: 2px solid rgba(147,51,234,0.15); border-radius: 2px;
-  color: var(--text-primary); min-height: 60px; resize: vertical; transition: all 0.2s ease;
-}
-.wl-textarea:focus { outline: none; border-color: rgba(168,85,247,0.4); box-shadow: 0 0 10px rgba(147,51,234,0.1); }
-.wl-modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 18px; border-top: 2px solid rgba(147,51,234,0.18); }
-.wl-btn-cancel { padding: 8px 18px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; background: rgba(147,51,234,0.06); border: 2px solid rgba(147,51,234,0.18); border-radius: 2px; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; }
-.wl-btn-cancel:hover { background: rgba(147,51,234,0.14); color: var(--text-primary); }
-.wl-btn-confirm { padding: 8px 18px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; background: linear-gradient(180deg, #a855f7, #7c3aed); border: 2px solid rgba(147,51,234,0.4); border-radius: 2px; color: #fff; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.5px; }
-.wl-btn-confirm:hover:not(:disabled) { background: linear-gradient(180deg, #9333ea, #6d28d9); }
-.wl-btn-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.wl-modal-fade-enter-active { animation: wlModalIn 0.25s ease-out; }
-.wl-modal-fade-leave-active { animation: wlModalIn 0.18s ease-in reverse; }
-@keyframes wlModalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.time-cell {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+  background: rgba(46, 204, 113, 0.1);
+  color: #2ECC71;
+  border: 1px solid rgba(46, 204, 113, 0.2);
+}
+
+.status-badge.inactive {
+  background: rgba(155, 89, 182, 0.12);
+  color: #9B59B6;
+  border: 1px solid rgba(155, 89, 182, 0.25);
+}
+
+.action-group {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.action-btn.enable-btn {
+  border-color: rgba(46, 204, 113, 0.3);
+  color: #2ECC71;
+}
+
+.action-btn.enable-btn:hover {
+  background: rgba(46, 204, 113, 0.12);
+}
+
+.action-btn.disable-btn {
+  border-color: rgba(255, 140, 0, 0.3);
+  color: #FF8C00;
+}
+
+.action-btn.disable-btn:hover {
+  background: rgba(255, 140, 0, 0.12);
+}
+
+.action-btn.delete-btn {
+  border-color: rgba(231, 76, 60, 0.3);
+  color: #E74C3C;
+  padding: 6px 10px;
+}
+
+.action-btn.delete-btn:hover {
+  background: rgba(231, 76, 60, 0.12);
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg), var(--shadow-gold-strong);
+  animation: modalIn 0.3s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.modal-title {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.close-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.2);
+  border-radius: var(--radius-sm);
+  color: #E74C3C;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #E74C3C;
+  color: #fff;
+}
+
+.modal-body {
+  padding: 22px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.btn {
+  padding: 10px 20px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn.secondary {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.btn.primary {
+  background: rgba(46, 204, 113, 0.12);
+  border-color: rgba(46, 204, 113, 0.3);
+  color: #2ECC71;
+}
+
+.btn.primary:hover {
+  background: rgba(46, 204, 113, 0.2);
+}
+
+.btn.primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== FORM ===== */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-color: rgba(255, 200, 0, 0.3);
+  box-shadow: 0 0 12px rgba(255, 200, 0, 0.08);
+}
+
+.form-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ===== TRANSITIONS ===== */
+.modal-fade-enter-active {
+  animation: fadeIn 0.25s ease-out;
+}
+
+.modal-fade-leave-active {
+  animation: fadeIn 0.2s ease-in reverse;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .reason-cell {
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 767px) {
+  .data-table thead th,
+  .data-table tbody td {
+    padding: 12px 14px;
+  }
+
+  .action-group {
+    flex-wrap: wrap;
+  }
+
+  .reason-cell {
+    max-width: none;
+    white-space: normal;
+  }
+}
 </style>

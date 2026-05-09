@@ -12,15 +12,29 @@ websocket:
 # 调试模式（生产环境请设置为 false）
 debug: false
 
+# 后端不可用时的降级策略
+# allow - 放行所有玩家（默认）
+# deny - 拒绝所有玩家入服
+# whitelist_only - 仅允许白名单玩家入服
+fallback:
+  strategy: allow
+
+# 配置同步设置
+sync:
+  # 是否从服务器同步配置（开启后插件启动时和运行中都会从后端获取配置）
+  enabled: true
+  # 自动同步间隔（秒），0表示仅在启动时同步
+  interval: 300
+
 # 检测开关
 detection:
-  fly: true              # 飞行作弊检测
-  speed: true            # 速度作弊检测
-  autoclick: true        # 自动点击检测
-  fly_permission: true   # 飞行权限检测
-  aimbot: true           # 瞄准辅助检测
-  killaura: true         # 杀戮光环检测
-  xray: true             # 透视作弊检测
+  fly: true
+  speed: true
+  autoclick: true
+  fly_permission: true
+  aimbot: true
+  killaura: true
+  xray: true
 
 # 检测阈值
 thresholds:
@@ -29,42 +43,44 @@ thresholds:
   max-sprint-speed: 7.0
   max-fly-speed: 12.0
 
-  # 自动点击检测阈值 (次/秒) — 与代码默认值一致
+  # 自动点击检测阈值 (次/秒)
   max-clicks-per-second: 15
 
   # 瞄准辅助检测阈值
-  max-yaw-change: 160.0       # 最大水平视角变化（单位：度，必须 < 180）
-  max-pitch-change: 90.0      # 最大垂直视角变化
-  aim-violation-threshold: 3  # 瞄准违规触发阈值（连续异常次数）
+  max-yaw-change: 160.0
+  max-pitch-change: 90.0
+  aim-violation-threshold: 3
 
   # 杀戮光环检测阈值
-  killaura-targets: 3         # 短时间内攻击的不同目标数
-  killaura-window: 1000       # 检测时间窗口 (毫秒)
+  killaura-targets: 3
+  killaura-window: 1000
 
   # X-Ray透视检测阈值
-  xray-rare-ore-ratio: 0.15   # 稀有矿物比例阈值
-  xray-min-blocks: 50         # 最小挖掘方块数
+  xray-rare-ore-ratio: 0.15
+  xray-min-blocks: 50
 
   # 飞行检测阈值
-  max-air-ticks: 10           # 最大悬空时间 (tick)
-  max-hover-count: 5          # 最大悬停次数（连续静止在空中 tick 数）
+  max-air-ticks: 10
+  max-hover-count: 5
 
 # 惩罚配置
 punishment:
-  cooldown: 3000              # 作弊检测冷却时间 (毫秒)
-  # 渐进式惩罚: 警告 → 临时封禁 → 永久封禁
-  warning-threshold: 2        # 纯警告次数（仅发消息提醒）
-  temp-ban-threshold: 4       # 临时封禁触发次数
-  perm-ban-threshold: 6       # 永久封禁触发次数
-  temp-ban-duration: 86400000 # 临时封禁时长 (毫秒)，默认24小时
+  cooldown: 3000
+  warning-threshold: 1
+  temp-ban-threshold: 2
+  perm-ban-threshold: 3
+  temp-ban-duration: 3600000
 
-# 消息配置
+# 消息配置（支持颜色代码和变量替换）
+# 可用变量: %cheatType%, %count%
 messages:
   warning: "&c&l[AntiCheat] &e警告! &f检测到疑似 &c%cheatType% &f行为"
-  warning-count: "&c&l[AntiCheat] &f这是第 &e%count% &f次警告，再次作弊将被踢出服务器"
+  warning-count: "&c&l[AntiCheat] &f这是第 &e%count% &f次警告"
   kick: "&c[AntiCheat] &f检测到多次作弊行为，你已被踢出服务器"
 
 # 权限说明
 # anticheat.bypass - 跳过所有检测
 # anticheat.fly - 允许飞行
 # anticheat.admin - 管理员权限
+# anticheat.notify - 接收检测通知
+# anticheat.report - 举报权限

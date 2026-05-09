@@ -21,7 +21,7 @@ public class Punishment {
     private long punishmentTime;
     
     @Column(name = "duration")
-    private long duration;
+    private Long duration;
     
     @Column(name = "reason")
     private String reason;
@@ -67,11 +67,11 @@ public class Punishment {
         this.punishmentTime = punishmentTime;
     }
 
-    public long getDuration() {
+    public Long getDuration() {
         return duration;
     }
 
-    public void setDuration(long duration) {
+    public void setDuration(Long duration) {
         this.duration = duration;
     }
 

@@ -53,7 +53,8 @@ public class HttpHelper {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T request(String method, String path, Map<String, Object> body, boolean retry, Type responseType) {
+    private <T> T request(String method, String path, Map<String, Object> body,
+                           boolean retry, Type responseType) {
         int attempts = retry ? MAX_RETRIES : 1;
 
         for (int i = 0; i < attempts; i++) {
@@ -83,7 +84,14 @@ public class HttpHelper {
                 }
 
                 String errorBody = readErrorStream(conn);
-                logger.warning("HTTP请求失败: " + path + " (响应码 " + responseCode + ")"
+
+                if (responseCode >= 400 && responseCode < 500) {
+                    logger.warning("HTTP客户端错误: " + path + " (响应码 " + responseCode + ")"
+                            + (errorBody != null ? " - " + errorBody : ""));
+                    return null;
+                }
+
+                logger.warning("HTTP服务端错误: " + path + " (响应码 " + responseCode + ")"
                         + (errorBody != null ? " - " + errorBody : ""));
 
                 if (retry && i < attempts - 1) {
@@ -114,14 +122,16 @@ public class HttpHelper {
 
     private String readResponse(HttpURLConnection conn) throws Exception {
         try (InputStream is = conn.getInputStream();
-             BufferedReader in = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+             BufferedReader in = new BufferedReader(
+                     new InputStreamReader(is, StandardCharsets.UTF_8))) {
             return readStream(in);
         }
     }
 
     private String readErrorStream(HttpURLConnection conn) {
         try (InputStream es = conn.getErrorStream();
-             BufferedReader in = new BufferedReader(new InputStreamReader(es, StandardCharsets.UTF_8))) {
+             BufferedReader in = new BufferedReader(
+                     new InputStreamReader(es, StandardCharsets.UTF_8))) {
             if (es == null) return null;
             return readStream(in);
         } catch (Exception e) {

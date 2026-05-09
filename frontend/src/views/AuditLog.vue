@@ -7,21 +7,21 @@
         <span class="at-cursor">_</span>
       </div>
       <div class="at-stats">
-        <span class="at-stat">{{ totalRecords }} records</span>
+        <span class="at-stat">{{ totalRecords }} {{ t('audit.records') }}</span>
       </div>
     </div>
 
     <div class="at-filters">
       <select v-model="filterType" class="at-select" @change="fetchLogs">
         <option value="">{{ t('common.all') }}</option>
-        <option value="BAN">BAN</option>
-        <option value="UNBAN">UNBAN</option>
-        <option value="DELETE_PLAYER">DELETE_PLAYER</option>
-        <option value="DELETE_CHEAT">DELETE_CHEAT</option>
-        <option value="HANDLE_REPORT">HANDLE_REPORT</option>
-        <option value="WHITELIST_ADD">WHITELIST_ADD</option>
-        <option value="WHITELIST_REMOVE">WHITELIST_REMOVE</option>
-        <option value="SETTINGS_UPDATE">SETTINGS_UPDATE</option>
+        <option value="BAN">{{ t('audit.BAN') }}</option>
+        <option value="UNBAN">{{ t('audit.UNBAN') }}</option>
+        <option value="DELETE_PLAYER">{{ t('audit.DELETE_PLAYER') }}</option>
+        <option value="DELETE_CHEAT">{{ t('audit.DELETE_CHEAT') }}</option>
+        <option value="HANDLE_REPORT">{{ t('audit.HANDLE_REPORT') }}</option>
+        <option value="WHITELIST_ADD">{{ t('audit.WHITELIST_ADD') }}</option>
+        <option value="WHITELIST_REMOVE">{{ t('audit.WHITELIST_REMOVE') }}</option>
+        <option value="SETTINGS_UPDATE">{{ t('audit.SETTINGS_UPDATE') }}</option>
       </select>
     </div>
 

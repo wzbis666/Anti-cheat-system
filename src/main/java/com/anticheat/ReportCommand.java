@@ -8,15 +8,17 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ReportCommand implements CommandExecutor {
 
     private final AntiCheatPlugin plugin;
     private static final long REPORT_COOLDOWN_MS = 30000;
     private static final int MAX_REASON_LENGTH = 200;
-    private final Map<UUID, Long> lastReportTime = new HashMap<>();
+    private final Map<UUID, Long> lastReportTime = new ConcurrentHashMap<>();
 
     public ReportCommand(AntiCheatPlugin plugin) {
         this.plugin = plugin;
@@ -70,7 +72,8 @@ public class ReportCommand implements CommandExecutor {
         String reason = reasonBuilder.toString().trim();
 
         if (reason.length() > MAX_REASON_LENGTH) {
-            reporter.sendMessage(ChatColor.RED + "举报原因过长，最多 " + MAX_REASON_LENGTH + " 个字符");
+            reporter.sendMessage(ChatColor.RED + "举报原因过长，最多 "
+                    + MAX_REASON_LENGTH + " 个字符");
             return true;
         }
 
@@ -80,13 +83,15 @@ public class ReportCommand implements CommandExecutor {
         }
 
         lastReportTime.put(reporterId, now);
+        cleanupStaleCooldowns(now);
 
         String reportedUuid = reported.getUniqueId().toString();
         submitReport(reporter.getName(), reporter.getUniqueId().toString(),
-                    reportedName, reportedUuid, reason);
+                reportedName, reportedUuid, reason);
 
         reporter.sendMessage(ChatColor.GREEN + "举报已提交，我们会尽快处理！");
-        plugin.getLogger().info("玩家 " + reporter.getName() + " 举报了 " + reportedName + ": " + reason);
+        plugin.getLogger().info("玩家 " + reporter.getName()
+                + " 举报了 " + reportedName + ": " + reason);
 
         notifyAdmins(reporter.getName(), reportedName, reason);
 
@@ -99,7 +104,8 @@ public class ReportCommand implements CommandExecutor {
                 + ChatColor.WHITE + ": " + reason;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (player.hasPermission("anticheat.notify") && !player.getName().equals(reporterName)) {
+            if (player.hasPermission("anticheat.notify")
+                    && !player.getName().equals(reporterName)) {
                 player.sendMessage(notification);
             }
         }
@@ -117,5 +123,15 @@ public class ReportCommand implements CommandExecutor {
 
             plugin.getHttp().post("/api/report/create", data);
         });
+    }
+
+    private void cleanupStaleCooldowns(long now) {
+        Iterator<Map.Entry<UUID, Long>> it = lastReportTime.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<UUID, Long> entry = it.next();
+            if (now - entry.getValue() > REPORT_COOLDOWN_MS * 2) {
+                it.remove();
+            }
+        }
     }
 }

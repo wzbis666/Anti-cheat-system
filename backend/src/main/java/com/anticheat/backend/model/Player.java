@@ -21,10 +21,10 @@ public class Player {
     private int riskScore = 0;
     
     @Column(name = "last_seen")
-    private long lastSeen;
+    private Long lastSeen;
 
     @Column(name = "first_seen")
-    private long firstSeen;
+    private Long firstSeen;
 
     @Column(name = "last_ip")
     private String lastIp;
@@ -73,16 +73,16 @@ public class Player {
         this.riskScore = riskScore;
     }
 
-    public long getLastSeen() {
+    public Long getLastSeen() {
         return lastSeen;
     }
 
-    public void setLastSeen(long lastSeen) {
+    public void setLastSeen(Long lastSeen) {
         this.lastSeen = lastSeen;
     }
 
-    public long getFirstSeen() { return firstSeen; }
-    public void setFirstSeen(long firstSeen) { this.firstSeen = firstSeen; }
+    public Long getFirstSeen() { return firstSeen; }
+    public void setFirstSeen(Long firstSeen) { this.firstSeen = firstSeen; }
 
     public String getLastIp() { return lastIp; }
     public void setLastIp(String lastIp) { this.lastIp = lastIp; }

@@ -29,7 +29,7 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://localhost:3030,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3030}")
     private String allowedOrigins;
 
     @Autowired
@@ -58,11 +58,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/appeal/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/ai/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/punishment/all", "/api/punishment/active", "/api/punishment/uuid/**", "/api/punishment/check/**").authenticated()
-                .requestMatchers("/api/punishment/ban").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/punishment/ban").hasAnyRole("ADMIN", "SUPER_ADMIN", "PLUGIN")
                 .requestMatchers("/api/punishment/unban/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/punishment/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/player/all", "/api/player/high-risk").authenticated()
-                .requestMatchers("/api/player/kick/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers("/api/player/kick/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "PLUGIN")
                 .requestMatchers("/api/player/*/risk").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/player/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/player/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
@@ -78,6 +78,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/whitelist/add").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/whitelist/remove/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/whitelist/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/settings/plugin").hasAnyRole("ADMIN", "SUPER_ADMIN", "PLUGIN")
+                .requestMatchers(HttpMethod.PUT, "/api/settings/plugin").hasAnyRole("ADMIN", "SUPER_ADMIN", "PLUGIN")
                 .requestMatchers("/api/settings/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/notification-rules/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .requestMatchers("/api/stats/**").authenticated()

@@ -3,8 +3,13 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
+  },
   server: {
-    port: 3000,
+    port: 3030,
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -12,18 +17,8 @@ export default defineConfig({
       },
       '/ws': {
         target: 'ws://localhost:8080',
+        changeOrigin: true,
         ws: true
-      }
-    }
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'element-plus': ['element-plus'],
-          'echarts': ['echarts'],
-          'vue': ['vue']
-        }
       }
     }
   }

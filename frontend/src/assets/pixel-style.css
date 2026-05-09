@@ -1,20 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 :root {
-  --pixel-bg-dark: #1a1c2c;
-  --pixel-bg-medium: #2d3047;
-  --pixel-bg-light: #3d4066;
-  --pixel-primary: #29adff;
-  --pixel-secondary: #00e436;
-  --pixel-accent: #ff6c24;
-  --pixel-danger: #ff004d;
-  --pixel-warning: #ffec27;
-  --pixel-text: #fff1e8;
-  --pixel-text-muted: #7e7e7e;
-  --pixel-border: #5f574f;
-  --pixel-shadow: #000;
-  --pixel-card-bg: #262b44;
-  --pixel-success: #00e436;
+  --pixel-bg-dark: #0a0a1a;
+  --pixel-bg-medium: #1a1a3a;
+  --pixel-bg-light: #2a2a5a;
+  --pixel-primary: #7c3aed;
+  --pixel-secondary: #06b6d4;
+  --pixel-accent: #f472b6;
+  --pixel-danger: #ef4444;
+  --pixel-warning: #f59e0b;
+  --pixel-text: #e2e8f0;
+  --pixel-text-muted: #64748b;
+  --pixel-text-secondary: #94a3b8;
+  --pixel-border: #4c1d95;
+  --pixel-shadow: rgba(0, 0, 0, 0.5);
+  --pixel-card-bg: #12122a;
+  --pixel-success: #10b981;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
 }
 
 * {
@@ -36,84 +38,87 @@ body {
 
 .pixel-card {
   background: var(--pixel-card-bg) !important;
-  border: 4px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  border: 2px solid rgba(124, 58, 237, 0.25) !important;
+  border-radius: 4px !important;
   box-shadow: 
-    8px 8px 0 var(--pixel-shadow),
-    inset 0 0 0 2px var(--pixel-bg-light) !important;
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(124, 58, 237, 0.1) !important;
   position: relative;
+  overflow: hidden;
 }
 
 .pixel-card::before {
   content: '';
   position: absolute;
-  top: 4px;
-  left: 4px;
-  right: 4px;
-  height: 4px;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
   background: linear-gradient(90deg, 
-    var(--pixel-primary) 0%, 
-    var(--pixel-secondary) 50%, 
-    var(--pixel-accent) 100%);
+    transparent, 
+    var(--pixel-primary), 
+    var(--pixel-secondary),
+    var(--pixel-primary),
+    transparent);
 }
 
 .pixel-btn {
   font-family: 'Press Start 2P', cursive !important;
-  font-size: 10px !important;
-  border: 4px solid var(--pixel-shadow) !important;
-  border-radius: 0 !important;
-  box-shadow: 4px 4px 0 var(--pixel-shadow) !important;
+  font-size: 9px !important;
+  border: 2px solid rgba(124, 58, 237, 0.3) !important;
+  border-radius: 3px !important;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3) !important;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.1s ease !important;
+  letter-spacing: 0.5px;
+  transition: all 0.15s ease !important;
   position: relative;
   overflow: hidden;
 }
 
 .pixel-btn:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--pixel-shadow) !important;
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
 .pixel-btn:active {
-  transform: translate(4px, 4px);
+  transform: translate(2px, 2px);
   box-shadow: none !important;
 }
 
 .pixel-btn-primary {
-  background: var(--pixel-primary) !important;
-  color: var(--pixel-bg-dark) !important;
-  border-color: #1d6fa5 !important;
+  background: linear-gradient(180deg, var(--pixel-primary), #6d28d9) !important;
+  color: #fff !important;
+  border-color: rgba(124, 58, 237, 0.5) !important;
 }
 
 .pixel-btn-success {
-  background: var(--pixel-secondary) !important;
-  color: var(--pixel-bg-dark) !important;
-  border-color: #00a329 !important;
+  background: linear-gradient(180deg, var(--pixel-success), #059669) !important;
+  color: #fff !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
 }
 
 .pixel-btn-danger {
-  background: var(--pixel-danger) !important;
-  color: var(--pixel-text) !important;
-  border-color: #a30032 !important;
+  background: linear-gradient(180deg, var(--pixel-danger), #dc2626) !important;
+  color: #fff !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
 }
 
 .pixel-btn-warning {
-  background: var(--pixel-warning) !important;
-  color: var(--pixel-bg-dark) !important;
-  border-color: #b5a300 !important;
+  background: linear-gradient(180deg, var(--pixel-warning), #d97706) !important;
+  color: #1f2937 !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
 }
 
 .pixel-input .el-input__wrapper {
-  background: var(--pixel-bg-dark) !important;
-  border: 3px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
-  box-shadow: inset 3px 3px 0 var(--pixel-shadow) !important;
+  background: rgba(10, 10, 26, 0.8) !important;
+  border: 2px solid rgba(124, 58, 237, 0.2) !important;
+  border-radius: 3px !important;
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.2) !important;
 }
 
 .pixel-input .el-input__inner {
-  font-family: 'Press Start 2P', cursive !important;
-  font-size: 10px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
   color: var(--pixel-text) !important;
 }
 
@@ -126,68 +131,80 @@ body {
 }
 
 .pixel-table .el-table__header-wrapper th {
-  background: var(--pixel-bg-medium) !important;
-  color: var(--pixel-primary) !important;
-  font-family: 'Press Start 2P', cursive !important;
+  background: rgba(124, 58, 237, 0.08) !important;
+  color: var(--pixel-secondary) !important;
+  font-family: var(--font-mono) !important;
   font-size: 9px !important;
-  border-bottom: 4px solid var(--pixel-border) !important;
+  border-bottom: 2px solid rgba(124, 58, 237, 0.2) !important;
+  letter-spacing: 0.5px;
 }
 
 .pixel-table .el-table__body-wrapper td {
-  background: var(--pixel-card-bg) !important;
+  background: rgba(18, 18, 42, 0.6) !important;
   color: var(--pixel-text) !important;
-  font-size: 10px !important;
-  border-bottom: 2px solid var(--pixel-border) !important;
+  font-size: 11px !important;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.08) !important;
 }
 
 .pixel-table .el-table__row:hover td {
-  background: var(--pixel-bg-light) !important;
+  background: rgba(124, 58, 237, 0.1) !important;
 }
 
 .pixel-tag {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 8px !important;
-  border: 2px solid var(--pixel-shadow) !important;
-  border-radius: 0 !important;
-  padding: 4px 8px !important;
+  font-weight: 700;
+  border: 1px solid !important;
+  border-radius: 2px !important;
+  padding: 3px 8px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .pixel-tag-primary {
-  background: var(--pixel-primary) !important;
-  color: var(--pixel-bg-dark) !important;
+  background: rgba(124, 58, 237, 0.12) !important;
+  color: var(--pixel-primary) !important;
+  border-color: rgba(124, 58, 237, 0.3) !important;
 }
 
 .pixel-tag-success {
-  background: var(--pixel-secondary) !important;
-  color: var(--pixel-bg-dark) !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: var(--pixel-success) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
 }
 
 .pixel-tag-danger {
-  background: var(--pixel-danger) !important;
-  color: var(--pixel-text) !important;
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: var(--pixel-danger) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
 }
 
 .pixel-tag-warning {
-  background: var(--pixel-warning) !important;
-  color: var(--pixel-bg-dark) !important;
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: var(--pixel-warning) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
 }
 
 .pixel-dialog .el-dialog {
-  background: var(--pixel-card-bg) !important;
-  border: 4px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
-  box-shadow: 8px 8px 0 var(--pixel-shadow) !important;
+  background: rgba(10, 10, 26, 0.98) !important;
+  border: 2px solid rgba(124, 58, 237, 0.3) !important;
+  border-radius: 4px !important;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(124, 58, 237, 0.1);
 }
 
 .pixel-dialog .el-dialog__header {
-  background: var(--pixel-bg-medium) !important;
-  border-bottom: 4px solid var(--pixel-border) !important;
+  background: rgba(124, 58, 237, 0.06) !important;
+  border-bottom: 2px solid rgba(124, 58, 237, 0.15) !important;
 }
 
 .pixel-dialog .el-dialog__title {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   color: var(--pixel-primary) !important;
-  font-size: 12px !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .pixel-dialog .el-dialog__body {
@@ -195,46 +212,48 @@ body {
 }
 
 .pixel-scrollbar::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
 }
 
 .pixel-scrollbar::-webkit-scrollbar-track {
-  background: var(--pixel-bg-dark);
-  border: 2px solid var(--pixel-border);
+  background: rgba(10, 10, 26, 0.5);
+  border: 1px solid rgba(124, 58, 237, 0.1);
 }
 
 .pixel-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--pixel-primary);
-  border: 2px solid var(--pixel-border);
+  background: rgba(124, 58, 237, 0.3);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 2px;
 }
 
 .pixel-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--pixel-secondary);
+  background: rgba(124, 58, 237, 0.5);
 }
 
 .pixel-divider {
-  height: 4px !important;
+  height: 2px !important;
   background: linear-gradient(90deg, 
-    var(--pixel-primary) 0%, 
-    var(--pixel-secondary) 25%, 
-    var(--pixel-warning) 50%, 
-    var(--pixel-accent) 75%, 
-    var(--pixel-danger) 100%) !important;
+    transparent,
+    rgba(124, 58, 237, 0.3),
+    var(--pixel-primary),
+    rgba(6, 182, 212, 0.5),
+    transparent) !important;
   border: none !important;
-  margin: 20px 0 !important;
+  margin: 16px 0 !important;
 }
 
 .pixel-avatar {
-  border: 3px solid var(--pixel-primary) !important;
-  border-radius: 0 !important;
-  box-shadow: 3px 3px 0 var(--pixel-shadow) !important;
+  border: 2px solid var(--pixel-primary) !important;
+  border-radius: 3px !important;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3) !important;
 }
 
 .pixel-stat-card {
-  background: var(--pixel-card-bg);
-  border: 4px solid var(--pixel-border);
-  box-shadow: 6px 6px 0 var(--pixel-shadow);
+  background: rgba(10, 10, 26, 0.85);
+  border: 2px solid rgba(124, 58, 237, 0.2);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -244,66 +263,65 @@ body {
   position: absolute;
   top: 0;
   right: 0;
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, transparent 50%, var(--pixel-primary) 50%);
-  opacity: 0.3;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, transparent 50%, rgba(124, 58, 237, 0.1) 50%);
 }
 
 .pixel-icon {
-  font-size: 24px;
-  filter: drop-shadow(2px 2px 0 var(--pixel-shadow));
+  font-size: 20px;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.3));
 }
 
 .pixel-breadcrumb {
-  font-family: 'Press Start 2P', cursive !important;
-  font-size: 10px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
 }
 
 .pixel-menu-item {
-  font-family: 'Press Start 2P', cursive !important;
-  font-size: 9px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 8px !important;
   letter-spacing: 0.5px;
-  border-left: 4px solid transparent !important;
+  border-left: 3px solid transparent !important;
   transition: all 0.2s ease !important;
 }
 
 .pixel-menu-item:hover {
-  background: var(--pixel-bg-light) !important;
+  background: rgba(124, 58, 237, 0.08) !important;
   border-left-color: var(--pixel-primary) !important;
 }
 
 .pixel-menu-item.is-active {
-  background: var(--pixel-bg-light) !important;
+  background: rgba(124, 58, 237, 0.1) !important;
   border-left-color: var(--pixel-secondary) !important;
   color: var(--pixel-secondary) !important;
 }
 
 .pixel-progress .el-progress-bar__outer {
-  background: var(--pixel-bg-dark) !important;
-  border: 2px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  background: rgba(10, 10, 26, 0.8) !important;
+  border: 1px solid rgba(124, 58, 237, 0.2) !important;
+  border-radius: 2px !important;
 }
 
 .pixel-progress .el-progress-bar__inner {
-  background: var(--pixel-primary) !important;
-  border-radius: 0 !important;
+  background: linear-gradient(90deg, var(--pixel-primary), var(--pixel-secondary)) !important;
+  border-radius: 2px !important;
 }
 
 .pixel-empty {
-  background: var(--pixel-card-bg);
-  border: 4px dashed var(--pixel-border);
-  padding: 40px !important;
+  background: rgba(10, 10, 26, 0.6);
+  border: 2px dashed rgba(124, 58, 237, 0.2);
+  padding: 30px !important;
 }
 
 .pixel-empty .el-empty__description {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   color: var(--pixel-text-muted) !important;
-  font-size: 10px !important;
+  font-size: 9px !important;
 }
 
 .pixel-tabs .el-tabs__item {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 9px !important;
   color: var(--pixel-text-muted) !important;
 }
@@ -314,41 +332,41 @@ body {
 
 .pixel-tabs .el-tabs__active-bar {
   background: var(--pixel-primary) !important;
-  height: 4px !important;
+  height: 3px !important;
 }
 
 .pixel-select .el-input__wrapper {
-  background: var(--pixel-bg-dark) !important;
-  border: 3px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  background: rgba(10, 10, 26, 0.8) !important;
+  border: 2px solid rgba(124, 58, 237, 0.2) !important;
+  border-radius: 3px !important;
 }
 
 .pixel-pagination .el-pager li {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 8px !important;
-  background: var(--pixel-card-bg) !important;
-  border: 2px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  background: rgba(10, 10, 26, 0.8) !important;
+  border: 1px solid rgba(124, 58, 237, 0.2) !important;
+  border-radius: 2px !important;
   color: var(--pixel-text) !important;
   margin: 0 2px !important;
 }
 
 .pixel-pagination .el-pager li.is-active {
   background: var(--pixel-primary) !important;
-  color: var(--pixel-bg-dark) !important;
+  color: #fff !important;
 }
 
 .pixel-tooltip {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 8px !important;
-  background: var(--pixel-bg-medium) !important;
-  border: 2px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  background: rgba(10, 10, 26, 0.95) !important;
+  border: 1px solid rgba(124, 58, 237, 0.3) !important;
+  border-radius: 2px !important;
 }
 
 @keyframes pixel-blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.3; }
 }
 
 .pixel-blink {
@@ -357,7 +375,7 @@ body {
 
 @keyframes pixel-float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  50% { transform: translateY(-3px); }
 }
 
 .pixel-float {
@@ -366,20 +384,20 @@ body {
 
 .pixel-glow {
   text-shadow: 
-    0 0 5px var(--pixel-primary),
-    0 0 10px var(--pixel-primary),
-    0 0 15px var(--pixel-primary);
+    0 0 4px var(--pixel-primary),
+    0 0 8px var(--pixel-primary),
+    0 0 12px var(--pixel-primary);
 }
 
 .pixel-border-dashed {
-  border: 4px dashed var(--pixel-border) !important;
+  border: 2px dashed rgba(124, 58, 237, 0.3) !important;
 }
 
 .pixel-bg-grid {
   background-image: 
-    linear-gradient(var(--pixel-border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--pixel-border) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(rgba(124, 58, 237, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
   background-position: -1px -1px;
 }
 
@@ -389,46 +407,49 @@ body {
 
 .pixel-corner-decoration::before,
 .pixel-corner-decoration::after {
-  content: '◆';
+  content: '◈';
   position: absolute;
   color: var(--pixel-primary);
-  font-size: 12px;
+  font-size: 10px;
+  opacity: 0.4;
 }
 
 .pixel-corner-decoration::before {
-  top: -15px;
-  left: -15px;
+  top: -12px;
+  left: -12px;
 }
 
 .pixel-corner-decoration::after {
-  bottom: -15px;
-  right: -15px;
+  bottom: -12px;
+  right: -12px;
 }
 
 .el-button {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 9px !important;
-  border-radius: 0 !important;
+  border-radius: 3px !important;
 }
 
 .el-input__inner {
-  font-family: 'Press Start 2P', cursive !important;
-  font-size: 10px !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
 }
 
 .el-select-dropdown__item {
-  font-family: 'Press Start 2P', cursive !important;
+  font-family: var(--font-mono) !important;
   font-size: 9px !important;
 }
 
 .el-message-box {
-  font-family: 'Press Start 2P', cursive !important;
-  border: 4px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
+  border: 2px solid rgba(124, 58, 237, 0.3) !important;
+  border-radius: 4px !important;
+  background: rgba(10, 10, 26, 0.98) !important;
 }
 
 .el-message {
-  font-family: 'Press Start 2P', cursive !important;
-  border: 3px solid var(--pixel-border) !important;
-  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
+  border: 2px solid rgba(124, 58, 237, 0.2) !important;
+  border-radius: 3px !important;
+  background: rgba(10, 10, 26, 0.95) !important;
 }

@@ -1,5 +1,5 @@
 api:
-  key: ${API_KEY:}
+  key: ${API_KEY:anticheat-plugin-secret-api-key-change-in-production}
 
 ai:
   enabled: ${AI_ENABLED:true}
@@ -12,7 +12,7 @@ ai:
   timeout: ${AI_TIMEOUT:30}
 
 jwt:
-  secret: ${JWT_SECRET:}
+  secret: ${JWT_SECRET:AntiCheatSystem2024SecretKeyForJwtTokenSigningAndValidation}
   expiration: ${JWT_EXPIRATION:86400000}
 
 server:

@@ -1,13 +1,12 @@
 package com.anticheat;
 
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -19,6 +18,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class AntiCheatWebSocketClient extends WebSocketClient {
+
+    private final AntiCheatPlugin plugin;
     private final Gson gson = new Gson();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "WebSocket-Reconnect");
@@ -33,8 +34,9 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
     private int currentDelay = RECONNECT_DELAY_SECONDS;
     private volatile boolean intentionalClose = false;
 
-    public AntiCheatWebSocketClient(URI serverUri, String apiKey) {
+    public AntiCheatWebSocketClient(URI serverUri, String apiKey, AntiCheatPlugin plugin) {
         super(serverUri);
+        this.plugin = plugin;
         addHeader("X-Api-Key", apiKey);
         setConnectionLostTimeout(30);
     }
@@ -43,16 +45,13 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
     public void onOpen(ServerHandshake handshakedata) {
         currentDelay = RECONNECT_DELAY_SECONDS;
         intentionalClose = false;
-        AntiCheatPlugin.getInstance().getLogger().info("WebSocket连接已建立");
-
+        plugin.getLogger().info("WebSocket连接已建立");
         startHeartbeat();
     }
 
     @Override
     public void onMessage(String message) {
-        if ("ping".equals(message) || "pong".equals(message)) {
-            return;
-        }
+        if ("ping".equals(message) || "pong".equals(message)) return;
 
         try {
             JsonObject json = JsonParser.parseString(message).getAsJsonObject();
@@ -77,12 +76,17 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
                 case "WHITELIST_REMOVE":
                     handleWhitelistRemoveCommand(json);
                     break;
+                case "CONFIG_UPDATE":
+                    handleConfigUpdateCommand(json);
+                    break;
+                case "CONFIG_SYNC":
+                    handleConfigSyncCommand();
+                    break;
                 default:
-                    AntiCheatPlugin.getInstance().getLogger().info(
-                            "收到未处理的服务器消息类型: " + type);
+                    plugin.getLogger().info("收到未处理的服务器消息类型: " + type);
             }
         } catch (Exception e) {
-            AntiCheatPlugin.getInstance().getLogger().info("收到服务器消息: " + message);
+            plugin.getLogger().info("收到服务器消息: " + message);
         }
     }
 
@@ -92,12 +96,16 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
 
         if (uuid.isEmpty()) return;
 
-        Bukkit.getScheduler().runTask(AntiCheatPlugin.getInstance(), () -> {
-            Player player = Bukkit.getPlayer(java.util.UUID.fromString(uuid));
-            if (player != null && player.isOnline()) {
-                player.kickPlayer("§c§l[AntiCheat] §f" + reason);
-                AntiCheatPlugin.getInstance().getLogger().info(
-                        "已执行服务器踢人命令: " + player.getName() + " - " + reason);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                Player player = Bukkit.getPlayer(java.util.UUID.fromString(uuid));
+                if (player != null && player.isOnline()) {
+                    player.kickPlayer("§c§l[AntiCheat] §f" + reason);
+                    plugin.getLogger().info("已执行服务器踢人命令: " + player.getName()
+                            + " - " + reason);
+                }
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("[AntiCheat] 无效的UUID格式: " + uuid);
             }
         });
     }
@@ -106,18 +114,23 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
         String uuid = json.has("uuid") ? json.get("uuid").getAsString() : "";
         String playerName = json.has("playerName") ? json.get("playerName").getAsString() : "";
         String reason = json.has("reason") ? json.get("reason").getAsString() : "作弊行为";
-        String punishmentType = json.has("punishmentType") ? json.get("punishmentType").getAsString() : "PERMANENT";
+        String punishmentType = json.has("punishmentType")
+                ? json.get("punishmentType").getAsString() : "PERMANENT";
         long duration = json.has("duration") ? json.get("duration").getAsLong() : 0;
 
         if (uuid.isEmpty()) return;
 
-        AntiCheatPlugin.getInstance().getCacheManager().addBanned(uuid, reason);
-        AntiCheatPlugin.getInstance().banPlayer(playerName, uuid, punishmentType, duration, reason);
+        plugin.getCacheManager().addBanned(uuid, reason);
+        plugin.banPlayer(playerName, uuid, punishmentType, duration, reason);
 
-        Bukkit.getScheduler().runTask(AntiCheatPlugin.getInstance(), () -> {
-            Player player = Bukkit.getPlayer(java.util.UUID.fromString(uuid));
-            if (player != null && player.isOnline()) {
-                player.kickPlayer("§c§l[AntiCheat] §f你已被封禁!\n§7原因: §f" + reason);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            try {
+                Player player = Bukkit.getPlayer(java.util.UUID.fromString(uuid));
+                if (player != null && player.isOnline()) {
+                    player.kickPlayer("§c§l[AntiCheat] §f你已被封禁!\n§7原因: §f" + reason);
+                }
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("[AntiCheat] 无效的UUID格式: " + uuid);
             }
         });
     }
@@ -125,39 +138,72 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
     private void handleUnbanCommand(JsonObject json) {
         String uuid = json.has("uuid") ? json.get("uuid").getAsString() : "";
         if (!uuid.isEmpty()) {
-            AntiCheatPlugin.getInstance().getCacheManager().removeBanned(uuid);
-            AntiCheatPlugin.getInstance().getLogger().info("已执行服务器解封命令: " + uuid);
+            plugin.getCacheManager().removeBanned(uuid);
+            plugin.getLogger().info("已执行服务器解封命令: " + uuid);
         }
     }
 
     private void handleWhitelistAddCommand(JsonObject json) {
         String uuid = json.has("uuid") ? json.get("uuid").getAsString() : "";
         if (!uuid.isEmpty()) {
-            AntiCheatPlugin.getInstance().getCacheManager().addWhitelist(uuid);
-            AntiCheatPlugin.getInstance().getLogger().info("已执行服务器白名单添加命令: " + uuid);
+            plugin.getCacheManager().addWhitelist(uuid);
+            plugin.getLogger().info("已执行服务器白名单添加命令: " + uuid);
         }
     }
 
     private void handleWhitelistRemoveCommand(JsonObject json) {
         String uuid = json.has("uuid") ? json.get("uuid").getAsString() : "";
         if (!uuid.isEmpty()) {
-            AntiCheatPlugin.getInstance().getCacheManager().removeWhitelist(uuid);
-            AntiCheatPlugin.getInstance().getLogger().info("已执行服务器白名单移除命令: " + uuid);
+            plugin.getCacheManager().removeWhitelist(uuid);
+            plugin.getLogger().info("已执行服务器白名单移除命令: " + uuid);
         }
     }
 
     private void handleRefreshCacheCommand() {
-        AntiCheatPlugin.getInstance().getCacheManager().forceRefresh();
-        AntiCheatPlugin.getInstance().getLogger().info("已执行服务器缓存刷新命令");
+        plugin.getCacheManager().forceRefresh();
+        plugin.getLogger().info("已执行服务器缓存刷新命令");
+    }
+
+    private void handleConfigUpdateCommand(JsonObject json) {
+        try {
+            JsonObject configData = json.getAsJsonObject("config");
+            java.util.Map<String, Object> configMap = new java.util.HashMap<>();
+
+            for (String key : configData.keySet()) {
+                com.google.gson.JsonElement element = configData.get(key);
+                if (element.isJsonPrimitive()) {
+                    com.google.gson.JsonPrimitive primitive = element.getAsJsonPrimitive();
+                    if (primitive.isBoolean()) {
+                        configMap.put(key, primitive.getAsBoolean());
+                    } else if (primitive.isNumber()) {
+                        try {
+                            configMap.put(key, primitive.getAsInt());
+                        } catch (Exception e) {
+                            configMap.put(key, primitive.getAsDouble());
+                        }
+                    } else {
+                        configMap.put(key, primitive.getAsString());
+                    }
+                }
+            }
+
+            plugin.getConfigManager().updateFromServerConfig(configMap);
+            plugin.getLogger().info("[AntiCheat] 已接收并应用配置更新");
+        } catch (Exception e) {
+            plugin.getLogger().warning("[AntiCheat] 处理配置更新失败: " + e.getMessage());
+        }
+    }
+
+    private void handleConfigSyncCommand() {
+        plugin.getLogger().info("[AntiCheat] 收到配置同步指令，从服务器重新加载配置...");
+        plugin.getConfigManager().loadFromServer();
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        AntiCheatPlugin.getInstance().getLogger().info(
-            "WebSocket连接已关闭 (code=" + code + ", reason=" + reason + ", remote=" + remote + ")");
-
+        plugin.getLogger().info("WebSocket连接已关闭 (code=" + code
+                + ", reason=" + reason + ", remote=" + remote + ")");
         stopHeartbeat();
-
         if (!intentionalClose) {
             scheduleReconnect();
         }
@@ -165,8 +211,7 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
 
     @Override
     public void onError(Exception ex) {
-        AntiCheatPlugin.getInstance().getLogger().log(Level.SEVERE,
-            "WebSocket错误: " + ex.getMessage(), ex);
+        plugin.getLogger().log(Level.SEVERE, "WebSocket错误: " + ex.getMessage(), ex);
     }
 
     private void startHeartbeat() {
@@ -176,8 +221,7 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
                 try {
                     send("ping");
                 } catch (Exception e) {
-                    AntiCheatPlugin.getInstance().getLogger().warning(
-                        "WebSocket 心跳发送失败: " + e.getMessage());
+                    plugin.getLogger().warning("WebSocket 心跳发送失败: " + e.getMessage());
                 }
             }
         }, HEARTBEAT_INTERVAL_SECONDS, HEARTBEAT_INTERVAL_SECONDS, TimeUnit.SECONDS);
@@ -190,22 +234,19 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
     }
 
     private void scheduleReconnect() {
-        if (reconnectTask != null && !reconnectTask.isDone()) {
-            return;
-        }
+        if (reconnectTask != null && !reconnectTask.isDone()) return;
 
-        AntiCheatPlugin.getInstance().getLogger().info(
-            "将在 " + currentDelay + " 秒后尝试重连WebSocket...");
+        plugin.getLogger().info("将在 " + currentDelay + " 秒后尝试重连WebSocket...");
 
         reconnectTask = scheduler.schedule(() -> {
             try {
                 if (!isOpen()) {
-                    AntiCheatPlugin.getInstance().getLogger().info("正在重新连接WebSocket...");
+                    plugin.getLogger().info("正在重新连接WebSocket...");
                     reconnectBlocking();
                 }
             } catch (Exception e) {
-                AntiCheatPlugin.getInstance().getLogger().log(Level.WARNING,
-                    "WebSocket重连失败: " + e.getMessage());
+                plugin.getLogger().log(Level.WARNING,
+                        "WebSocket重连失败: " + e.getMessage());
                 currentDelay = Math.min(currentDelay * 2, MAX_RECONNECT_DELAY_SECONDS);
                 scheduleReconnect();
             }
@@ -231,10 +272,11 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
         }
     }
 
-    public void sendCheatData(String playerName, String uuid, String cheatType, int severity, String details) {
+    public void sendCheatData(String playerName, String uuid, String cheatType,
+                               int severity, String details) {
         if (!isOpen()) {
-            AntiCheatPlugin.getInstance().getLogger().warning(
-                "WebSocket未连接，无法发送作弊数据: " + playerName + " - " + cheatType);
+            plugin.getLogger().warning("WebSocket未连接，无法发送作弊数据: "
+                    + playerName + " - " + cheatType);
             return;
         }
 
