@@ -1,8 +1,9 @@
 # AntiCheatPlugin 配置文件
 
 # API 认证密钥（需与后端 application.yml 中的 api.key 一致）
+# 请使用强随机密钥，至少 32 字符。例如: openssl rand -hex 32
 api:
-  key: anticheat-plugin-secret-api-key-change-in-production
+  key: changeme
 
 # WebSocket 服务器配置
 websocket:

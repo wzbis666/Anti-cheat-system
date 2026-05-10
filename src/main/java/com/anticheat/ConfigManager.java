@@ -200,12 +200,25 @@ public class ConfigManager {
             plugin.getLogger().severe("===================================================");
             return false;
         }
-        if (apiKey.equals("anticheat-plugin-secret-api-key-change-in-production")) {
+        if (apiKey.equals("anticheat-plugin-secret-api-key-change-in-production")
+                || apiKey.equals("your-api-key")
+                || apiKey.equals("changeme")) {
+            plugin.getLogger().severe("===================================================");
+            plugin.getLogger().severe("[AntiCheat] 严重安全警告: 您正在使用默认或弱 API 密钥！");
+            plugin.getLogger().severe("[AntiCheat] 此密钥为公开默认值，不具备任何安全性。");
+            plugin.getLogger().severe("[AntiCheat] 请执行以下步骤：");
+            plugin.getLogger().severe("[AntiCheat] 1. 生成一个强随机密钥（至少 32 字符）");
+            plugin.getLogger().severe("[AntiCheat] 2. 修改 config.yml 中的 api.key");
+            plugin.getLogger().severe("[AntiCheat] 3. 确保后端 application.yml 中的 api.key 与此一致");
+            plugin.getLogger().severe("[AntiCheat] 4. 重启服务器");
+            plugin.getLogger().severe("[AntiCheat] 插件将继续加载，但后端通信将被禁用。");
+            plugin.getLogger().severe("===================================================");
+            return false;
+        }
+        if (apiKey.length() < 16) {
             plugin.getLogger().warning("===================================================");
-            plugin.getLogger().warning("[AntiCheat] 警告: 您正在使用默认 API 密钥！");
-            plugin.getLogger().warning("[AntiCheat] 此配置仅适用于测试环境。");
-            plugin.getLogger().warning("[AntiCheat] 生产环境请在 config.yml 中修改 api.key 为一个强随机值，");
-            plugin.getLogger().warning("[AntiCheat] 并确保后端 application.yml 中的 api.key 与此一致。");
+            plugin.getLogger().warning("[AntiCheat] 警告: API 密钥长度不足（" + apiKey.length() + " 字符）");
+            plugin.getLogger().warning("[AntiCheat] 建议使用至少 32 字符的强随机密钥。");
             plugin.getLogger().warning("===================================================");
         }
         return true;
