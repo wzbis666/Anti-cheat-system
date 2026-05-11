@@ -329,16 +329,6 @@ npm run dev
 
 将 `target/AntiCheatPlugin-1.0-SNAPSHOT.jar` 复制到 Spigot 服务器的 `plugins/` 目录，重启服务器。
 
-### 访问地址
-
-| 服务 | 地址 |
-|------|------|
-| 前端管理面板 | http://localhost:3030 |
-| 后端 API | http://localhost:8080 |
-| Swagger 文档 | http://localhost:8080/swagger-ui.html |
-
-默认账号：`admin` / `admin123`（首次登录后请立即修改）
-
 ---
 
 ## 工程实践
