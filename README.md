@@ -257,6 +257,22 @@ npm run dev                           # 访问 http://localhost:3030
 
 将 `target/AntiCheatPlugin-1.0-SNAPSHOT.jar` 复制到 Spigot 服务器的 `plugins/` 目录，重启服务器即可。
 
+### 一键启动（Docker Compose）
+
+```bash
+docker compose up -d
+```
+
+这会启动 MySQL + 后端 + 前端，访问 `http://localhost:3030` 即可打开管理面板。
+
+### 演示与预览
+
+| 仪表盘 | AI 分析 |
+|--------|---------|
+| 实时作弊推送、ECharts 雷达图、安全态势概览 | DeepSeek 流式对话、作弊行为智能研判 |
+
+> 在线演示截图请参见项目文档或直接使用 Docker Compose 在本地启动体验。
+
 ---
 
 ## 项目结构
