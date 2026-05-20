@@ -13,6 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 @Service
 public class PunishmentService {
 
@@ -26,6 +30,24 @@ public class PunishmentService {
 
     public List<Punishment> getAllPunishments() {
         return punishmentRepository.findAll();
+    }
+
+    public Page<Punishment> getPunishmentsPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return punishmentRepository.findAllPaged(pageable);
+    }
+
+    public Page<Punishment> getActivePunishmentsPaged(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return punishmentRepository.findActivePaged(pageable);
+    }
+
+    public long getTotalPunishmentsCount() {
+        return punishmentRepository.count();
+    }
+
+    public long getActivePunishmentsCount() {
+        return punishmentRepository.countByActiveTrue();
     }
 
     public List<Punishment> getActivePunishments() {
@@ -50,6 +72,24 @@ public class PunishmentService {
         logger.info("========== 开始封禁玩家 ==========");
         logger.info("玩家名: {}, UUID: {}", playerName, uuid);
         logger.info("封禁类型: {}, 时长: {}, 原因: {}", punishmentType, duration, reason);
+
+        Punishment existingBan = getActiveBan(uuid);
+        if (existingBan != null) {
+            logger.info("玩家 {} 已有活跃封禁记录 (ID={}, 类型={}), 跳过重复封禁",
+                    playerName, existingBan.getId(), existingBan.getPunishmentType());
+            if ("PERMANENT".equals(existingBan.getPunishmentType())) {
+                return existingBan;
+            }
+            if ("TEMPORARY".equals(existingBan.getPunishmentType()) && "PERMANENT".equals(punishmentType)) {
+                logger.info("升级临时封禁为永久封禁");
+                existingBan.setActive(false);
+                existingBan.setUnbannedTime(System.currentTimeMillis());
+                existingBan.setUnbannedBy("SYSTEM_UPGRADE");
+                punishmentRepository.save(existingBan);
+            } else {
+                return existingBan;
+            }
+        }
         
         Player player = playerRepository.findByUuid(uuid)
             .orElseGet(() -> {

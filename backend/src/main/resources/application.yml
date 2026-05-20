@@ -1,6 +1,10 @@
 api:
   key: ${API_KEY:anticheat-plugin-secret-api-key-change-in-production}
 
+app:
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:3001,http://localhost:3030,http://localhost:3031,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3030,http://127.0.0.1:3031
+
 ai:
   enabled: ${AI_ENABLED:true}
   provider: ${AI_PROVIDER:deepseek}

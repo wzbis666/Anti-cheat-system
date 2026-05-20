@@ -93,6 +93,11 @@ public class CheatRecordService {
     }
 
     private void checkProgressivePunishment(Player player, String cheatType) {
+        if (punishmentService.isPlayerBanned(player.getUuid())) {
+            logger.info("玩家 {} 已被封禁，跳过渐进式惩罚检查", player.getPlayerName());
+            return;
+        }
+
         String typeKey = cheatType.toLowerCase().replaceAll("[^a-z]", "");
         int warnThreshold = settingsService.getIntSetting("cheat." + typeKey + ".warn_threshold", 3);
         int kickThreshold = settingsService.getIntSetting("cheat." + typeKey + ".kick_threshold", 5);

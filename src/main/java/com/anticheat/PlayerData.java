@@ -40,4 +40,5 @@ public class PlayerData {
     volatile String lastCheatType;
     volatile long lastCheatTime;
     volatile boolean hasReceivedWarning;
+    volatile int consecutiveCheatCount;
 }

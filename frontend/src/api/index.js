@@ -89,6 +89,7 @@ export const reportApi = {
 
 export const punishmentApi = {
   getAll: (config) => api.get('/punishment/all', config),
+  getPaged: (page, size, config) => api.get('/punishment/page', { params: { page, size }, ...config }),
   ban: (data, config) => api.post('/punishment/ban', data, config),
   unban: (id, config) => api.post(`/punishment/unban/${id}`, {}, config),
   delete: (id, config) => api.delete(`/punishment/${id}`, config),

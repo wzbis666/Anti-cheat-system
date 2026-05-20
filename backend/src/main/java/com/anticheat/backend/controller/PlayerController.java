@@ -5,12 +5,15 @@ import com.anticheat.backend.model.Player;
 import com.anticheat.backend.security.JwtUtils;
 import com.anticheat.backend.service.AuditLogService;
 import com.anticheat.backend.service.PlayerService;
+import com.anticheat.backend.service.PunishmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +24,7 @@ public class PlayerController {
     private static final Logger logger = LoggerFactory.getLogger(PlayerController.class);
 
     private final PlayerService playerService;
+    private final PunishmentService punishmentService;
 
     @Autowired
     private AuditLogService auditLogService;
@@ -29,13 +33,31 @@ public class PlayerController {
     private JwtUtils jwtUtils;
 
     @Autowired
-    public PlayerController(PlayerService playerService) {
+    public PlayerController(PlayerService playerService, PunishmentService punishmentService) {
         this.playerService = playerService;
+        this.punishmentService = punishmentService;
     }
 
     @GetMapping("/all")
-    public List<Player> getAllPlayers() {
-        return playerService.getAllPlayers();
+    public List<Map<String, Object>> getAllPlayers() {
+        List<Player> players = playerService.getAllPlayers();
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        for (Player player : players) {
+            Map<String, Object> playerMap = new HashMap<>();
+            playerMap.put("id", player.getId());
+            playerMap.put("playerName", player.getPlayerName());
+            playerMap.put("uuid", player.getUuid());
+            playerMap.put("riskScore", player.getRiskScore());
+            playerMap.put("lastSeen", player.getLastSeen());
+            playerMap.put("firstSeen", player.getFirstSeen());
+            playerMap.put("lastIp", player.getLastIp());
+            playerMap.put("kickCount", player.getKickCount());
+            playerMap.put("banned", punishmentService.isPlayerBanned(player.getUuid()));
+            result.add(playerMap);
+        }
+        
+        return result;
     }
 
     @GetMapping("/{uuid}")

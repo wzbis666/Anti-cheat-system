@@ -8,6 +8,7 @@ import com.anticheat.backend.service.AuditLogService;
 import com.anticheat.backend.service.PunishmentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,9 +34,41 @@ public class PunishmentController {
         return ResponseEntity.ok(punishmentService.getAllPunishments());
     }
 
+    @GetMapping("/page")
+    public ResponseEntity<Map<String, Object>> getPunishmentsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Punishment> punishmentPage = punishmentService.getPunishmentsPaged(page, size);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", punishmentPage.getContent());
+        response.put("totalElements", punishmentPage.getTotalElements());
+        response.put("totalPages", punishmentPage.getTotalPages());
+        response.put("currentPage", page);
+        response.put("pageSize", size);
+        
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/active")
     public ResponseEntity<List<Punishment>> getActivePunishments() {
         return ResponseEntity.ok(punishmentService.getActivePunishments());
+    }
+
+    @GetMapping("/active/page")
+    public ResponseEntity<Map<String, Object>> getActivePunishmentsPaged(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<Punishment> punishmentPage = punishmentService.getActivePunishmentsPaged(page, size);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", punishmentPage.getContent());
+        response.put("totalElements", punishmentPage.getTotalElements());
+        response.put("totalPages", punishmentPage.getTotalPages());
+        response.put("currentPage", page);
+        response.put("pageSize", size);
+        
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/player/{playerId}")
@@ -59,6 +92,7 @@ public class PunishmentController {
 
         if (activeBan != null) {
             response.put("reason", activeBan.getReason());
+            response.put("duration", activeBan.getDuration());
         }
 
         return ResponseEntity.ok(response);

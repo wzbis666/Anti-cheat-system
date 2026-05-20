@@ -48,7 +48,7 @@ public class PlayerJoinListener implements Listener {
                     }
 
                     if (checkResult.banned) {
-                        handleBannedPlayer(player, playerName, checkResult.reason);
+                        handleBannedPlayer(player, playerName, checkResult.reason, checkResult.duration);
                     } else {
                         handleCleanPlayer(player);
                     }
@@ -130,17 +130,19 @@ public class PlayerJoinListener implements Listener {
         }
     }
 
-    private void handleBannedPlayer(Player player, String playerName, String reason) {
+    private void handleBannedPlayer(Player player, String playerName, String reason, long duration) {
         plugin.getLogger().warning("[AntiCheat] 玩家 " + playerName
-                + " 已被封禁，正在踢出... 原因: " + reason);
+                + " 已被封禁，正在踢出... 原因: " + reason + ", 时长: " + (duration <= 0 ? "永久" : formatDuration(duration)));
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (player.isOnline()) {
+                    String banDuration = duration <= 0 ? "永久" : formatDuration(duration);
                     player.kickPlayer(
                             "§c§l[AntiCheat] §f你已被封禁!\n"
                                     + "§7原因: §f" + reason + "\n"
-                                    + "§7如有疑问请联系管理员");
+                                    + "§7时长: §f" + banDuration + "\n"
+                                    + "§7解决方法: §f联系管理员申诉");
                     plugin.getLogger().info("[AntiCheat] 玩家 " + playerName
                             + " 已被踢出服务器（封禁）");
                 } else {
@@ -149,6 +151,29 @@ public class PlayerJoinListener implements Listener {
                 }
             }
         }.runTask(plugin);
+    }
+
+    private String formatDuration(long millis) {
+        if (millis <= 0) {
+            return "永久";
+        }
+        long days = millis / (1000 * 60 * 60 * 24);
+        long hours = (millis % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60);
+        long minutes = (millis % (1000 * 60 * 60)) / (1000 * 60);
+        
+        StringBuilder sb = new StringBuilder();
+        if (days > 0) {
+            sb.append(days).append("天");
+        }
+        if (hours > 0) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(hours).append("小时");
+        }
+        if (minutes > 0) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(minutes).append("分钟");
+        }
+        return sb.length() > 0 ? sb.toString() : "永久";
     }
 
     private void handleCleanPlayer(Player player) {

@@ -3,7 +3,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2 class="page-title">{{ t('nav.punishments') }}</h2>
-        <span class="ban-count">{{ punishments.length }} {{ t('punishments.totalBans') }}</span>
+        <span class="ban-count">{{ totalElements }} {{ t('punishments.totalBans') }}</span>
       </div>
 
       <button class="add-ban-btn" @click="showBanDialog = true">
@@ -97,6 +97,38 @@
             </tr>
           </tbody>
         </table>
+
+        <div class="pagination-container">
+          <div class="pagination-info">
+            <span>{{ t('pagination.showing') }} {{ (currentPage * pageSize) + 1 }} - {{ Math.min((currentPage + 1) * pageSize, totalElements) }} {{ t('pagination.of') }} {{ totalElements }}</span>
+          </div>
+          <div class="pagination-controls">
+            <button
+              class="pagination-btn"
+              :disabled="currentPage === 0"
+              @click="goToPage(currentPage - 1)"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <div class="pagination-pages">
+              <button
+                v-for="page in visiblePages"
+                :key="page"
+                :class="['pagination-page', { active: page === currentPage }]"
+                @click="goToPage(page)"
+              >
+                {{ page + 1 }}
+              </button>
+            </div>
+            <button
+              class="pagination-btn"
+              :disabled="currentPage >= totalPages - 1"
+              @click="goToPage(currentPage + 1)"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -237,7 +269,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { punishmentApi, aiApi } from '../api'
 import { renderAiText } from '../utils/helpers'
@@ -265,13 +297,38 @@ export default {
     const aiEvalDialogVisible = ref(false)
     const aiEvalPlayer = ref('')
 
+    const currentPage = ref(0)
+    const pageSize = ref(10)
+    const totalElements = ref(0)
+    const totalPages = ref(0)
+
     let controller = null
 
-    const fetchPunishments = async () => {
+    const visiblePages = computed(() => {
+      const pages = []
+      const maxVisible = 5
+      let start = Math.max(0, currentPage.value - Math.floor(maxVisible / 2))
+      let end = Math.min(totalPages.value, start + maxVisible)
+      
+      if (end - start < maxVisible) {
+        start = Math.max(0, end - maxVisible)
+      }
+      
+      for (let i = start; i < end; i++) {
+        pages.push(i)
+      }
+      return pages
+    })
+
+    const fetchPunishments = async (page = 0, size = 10) => {
       loading.value = true
       try {
         controller = new AbortController()
-        punishments.value = await punishmentApi.getAll({ signal: controller.signal })
+        const response = await punishmentApi.getPaged(page, size, { signal: controller.signal })
+        punishments.value = response.content || []
+        totalElements.value = response.totalElements || 0
+        totalPages.value = response.totalPages || 0
+        currentPage.value = page
       } catch (error) {
         if (error.name !== 'AbortError') {
           console.error('Failed to fetch punishments:', error)
@@ -279,6 +336,12 @@ export default {
         }
       } finally {
         loading.value = false
+      }
+    }
+
+    const goToPage = (page) => {
+      if (page >= 0 && page < totalPages.value) {
+        fetchPunishments(page, pageSize.value)
       }
     }
 
@@ -314,7 +377,7 @@ export default {
           duration: 86400000,
           reason: 'Cheating'
         }
-        fetchPunishments()
+        fetchPunishments(0, pageSize.value)
         EventBus.emit(Events.STATS_CHANGED)
       } catch (error) {
         console.error('Failed to ban player:', error)
@@ -337,7 +400,7 @@ export default {
         )
         await punishmentApi.unban(punishment.id)
         ElMessage.success(t('common.success'))
-        fetchPunishments()
+        fetchPunishments(currentPage.value, pageSize.value)
         EventBus.emit(Events.STATS_CHANGED)
       } catch (error) {
         if (error !== 'cancel') {
@@ -360,7 +423,7 @@ export default {
         )
         await punishmentApi.delete(id)
         ElMessage.success(t('common.success'))
-        fetchPunishments()
+        fetchPunishments(currentPage.value, pageSize.value)
         EventBus.emit(Events.STATS_CHANGED)
       } catch (error) {
         if (error !== 'cancel') {
@@ -422,7 +485,7 @@ export default {
     }
 
     onMounted(() => {
-      fetchPunishments()
+      fetchPunishments(0, pageSize.value)
     })
 
     onUnmounted(() => {
@@ -441,12 +504,18 @@ export default {
       aiEvalResult,
       aiEvalDialogVisible,
       aiEvalPlayer,
+      currentPage,
+      pageSize,
+      totalElements,
+      totalPages,
+      visiblePages,
       formatTime,
       formatDuration,
       handleBan,
       handleUnban,
       handleDelete,
       evaluateBan,
+      goToPage,
       renderAiText,
       getEvalVerdictClass,
       getActionClass,
@@ -1004,6 +1073,84 @@ export default {
   font-family: var(--font-mono);
   font-size: 26px;
   font-weight: 800;
+  color: var(--accent-gold);
+}
+
+/* ===== PAGINATION ===== */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-color);
+}
+
+.pagination-info {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(255, 200, 0, 0.08);
+  border-color: rgba(255, 200, 0, 0.3);
+  color: var(--text-primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 4px;
+}
+
+.pagination-page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 10px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-page:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.pagination-page.active {
+  background: rgba(255, 200, 0, 0.15);
+  border-color: rgba(255, 200, 0, 0.3);
   color: var(--accent-gold);
 }
 

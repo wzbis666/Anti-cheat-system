@@ -120,7 +120,9 @@ public class AntiCheatWebSocketClient extends WebSocketClient {
 
         if (uuid.isEmpty()) return;
 
-        plugin.getCacheManager().addBanned(uuid, reason);
+        if (!plugin.getCacheManager().isBanned(uuid)) {
+            plugin.getCacheManager().addBanned(uuid, reason);
+        }
         plugin.banPlayer(playerName, uuid, punishmentType, duration, reason);
 
         Bukkit.getScheduler().runTask(plugin, () -> {

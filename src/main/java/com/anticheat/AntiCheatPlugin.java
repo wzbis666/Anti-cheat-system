@@ -151,11 +151,13 @@ public class AntiCheatPlugin extends JavaPlugin {
         public final boolean known;
         public final boolean banned;
         public final String reason;
+        public final long duration;
 
-        CheckResult(boolean known, boolean banned, String reason) {
+        CheckResult(boolean known, boolean banned, String reason, long duration) {
             this.known = known;
             this.banned = banned;
             this.reason = reason;
+            this.duration = duration;
         }
     }
 
@@ -164,18 +166,19 @@ public class AntiCheatPlugin extends JavaPlugin {
         if (result != null && result.containsKey("banned")) {
             boolean banned = Boolean.TRUE.equals(result.get("banned"));
             String reason = result.getOrDefault("reason", "作弊行为").toString();
+            long duration = result.containsKey("duration") ? ((Number) result.get("duration")).longValue() : 0;
             if (banned) {
                 cacheManager.addBanned(uuid, reason);
             } else {
                 cacheManager.removeBanned(uuid);
             }
-            return new CheckResult(true, banned, reason);
+            return new CheckResult(true, banned, reason, duration);
         }
         getLogger().warning("[AntiCheat] 无法连接后端，使用本地缓存检查封禁状态: " + uuid);
         if (cacheManager.isBanned(uuid)) {
-            return new CheckResult(false, true, cacheManager.getBanReason(uuid));
+            return new CheckResult(false, true, cacheManager.getBanReason(uuid), 0);
         }
-        return new CheckResult(false, false, "无法验证");
+        return new CheckResult(false, false, "无法验证", 0);
     }
 
     public void banPlayer(String playerName, String uuid, String punishmentType,
@@ -194,7 +197,9 @@ public class AntiCheatPlugin extends JavaPlugin {
                 getLogger().info("[AntiCheat] 正在" + banTypeDesc + "玩家: " + playerName
                         + ", UUID: " + uuid + ", 原因: " + reason);
 
-                cacheManager.addBanned(uuid, reason);
+                if (!cacheManager.isBanned(uuid)) {
+                    cacheManager.addBanned(uuid, reason);
+                }
 
                 Map<String, Object> result = http.postWithRetry("/api/punishment/ban", data);
 
