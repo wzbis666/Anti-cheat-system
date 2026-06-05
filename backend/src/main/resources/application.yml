@@ -1,5 +1,5 @@
 api:
-  key: ${API_KEY:anticheat-plugin-secret-api-key-change-in-production}
+  key: ${API_KEY:YOUR_API_KEY_HERE}
 
 app:
   cors:
@@ -16,7 +16,7 @@ ai:
   timeout: ${AI_TIMEOUT:30}
 
 jwt:
-  secret: ${JWT_SECRET:AntiCheatSystem2024SecretKeyForJwtTokenSigningAndValidation}
+  secret: ${JWT_SECRET:YOUR_JWT_SECRET_HERE}
   expiration: ${JWT_EXPIRATION:86400000}
 
 server:
@@ -29,7 +29,7 @@ spring:
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/anticheat?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:123456}
+    password: ${DB_PASSWORD:YOUR_DB_PASSWORD_HERE}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10

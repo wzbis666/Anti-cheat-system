@@ -6,7 +6,7 @@ services:
     container_name: anticheat-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-YOUR_DB_PASSWORD_HERE}
       MYSQL_DATABASE: anticheat
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_unicode_ci
@@ -31,7 +31,7 @@ services:
     environment:
       DB_URL: jdbc:mysql://mysql:3306/anticheat?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       DB_USERNAME: root
-      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      DB_PASSWORD: ${DB_PASSWORD:-YOUR_DB_PASSWORD_HERE}
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-secret-at-least-32-chars}
       API_KEY: ${API_KEY:-change-me-to-a-random-api-key-at-least-32-chars}
       AI_API_KEY: ${AI_API_KEY:-}

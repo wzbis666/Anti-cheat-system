@@ -18,11 +18,23 @@ bin/
 *.log
 logs/
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.local
 .env.development.local
 .env.production.local
+.env.*.local
+
+# Credentials and secrets (DO NOT COMMIT)
+*.pem
+*.key
+*.crt
+*.keystore
+*.truststore
+secrets/
+credentials/
+**/secrets.yml
+**/credentials.yml
 
 # IDE/Editor
 .vscode/
@@ -31,19 +43,19 @@ logs/
 *.swp
 *.swo
 *~
-
-# OS files
 .DS_Store
 Thumbs.db
 
 # Temporary files
 *.tmp
 *.bak
+*.orig
 
 # Local configurations
 *.local
 config/local/
 application-local.yml
+application-local.yaml
 
 # Claude AI worktrees
 .claude/
@@ -53,3 +65,23 @@ application-local.yml
 *.mov
 *.avi
 *.webm
+
+# Database files
+*.sql
+*.dump
+
+# Test coverage
+coverage/
+*.exec
+jacoco.exec
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/.DS_Store
+
+# Backend
+backend/target/
+
+# Plugin
+plugins/
